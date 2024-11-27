@@ -127,6 +127,10 @@
     let offsetX = 0, offsetY = 0;
     let showCard = true;
 
+    // Add touch variables
+    let initialPinchDistance = null;
+    let initialScale = null;
+
     // Load both images
     const boardImg = new Image();
     const cardImg = new Image();
@@ -160,11 +164,115 @@
       }
     }
 
-    // Dragging functionality
+    function getEventPoint(e) {
+      // Get point for both mouse and touch events
+      const rect = canvas.getBoundingClientRect();
+      const point = {
+        x: (e.clientX || e.touches[0].clientX) - rect.left,
+        y: (e.clientY || e.touches[0].clientY) - rect.top
+      };
+      return point;
+    }
+
+    function zoom(factor, centerX, centerY) {
+      // Convert center point to canvas coordinates before scaling
+      const pointBeforeScale = {
+        x: (centerX - offsetX) / scaleFactor,
+        y: (centerY - offsetY) / scaleFactor
+      };
+
+      // Apply scale
+      scaleFactor *= factor;
+
+      // Convert same point after scaling
+      const pointAfterScale = {
+        x: pointBeforeScale.x * scaleFactor,
+        y: pointBeforeScale.y * scaleFactor
+      };
+
+      // Adjust offset to keep the point under cursor
+      offsetX += centerX - (pointAfterScale.x + offsetX);
+      offsetY += centerY - (pointAfterScale.y + offsetY);
+
+      drawImages();
+    }
+
+    // Update zoom button handlers
+    document.getElementById('zoomIn').addEventListener('click', () => {
+      const center = {
+        x: canvas.width / 2,
+        y: canvas.height / 2
+      };
+      zoom(1.1, center.x, center.y);
+    });
+
+    document.getElementById('zoomOut').addEventListener('click', () => {
+      const center = {
+        x: canvas.width / 2,
+        y: canvas.height / 2
+      };
+      zoom(0.9, center.x, center.y);
+    });
+
+    // Touch events for pinch zoom
+    canvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        // Get initial distance between touch points
+        initialPinchDistance = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        initialScale = scaleFactor;
+      }
+    });
+
+    canvas.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2) {
+        e.preventDefault();
+        
+        // Calculate new distance
+        const currentDistance = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+
+        if (initialPinchDistance === null) {
+          initialPinchDistance = currentDistance;
+        }
+
+        // Calculate center point of the pinch
+        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+
+        // Calculate zoom factor
+        const scale = currentDistance / initialPinchDistance;
+        
+        // Apply zoom relative to initial scale
+        scaleFactor = initialScale * scale;
+        
+        zoom(1, centerX, centerY);
+      } else if (e.touches.length === 1 && isDragging) {
+        // Handle single touch drag
+        const touch = e.touches[0];
+        offsetX = touch.clientX - startX;
+        offsetY = touch.clientY - startY;
+        drawImages();
+      }
+    });
+
+    canvas.addEventListener('touchend', () => {
+      initialPinchDistance = null;
+      initialScale = null;
+      isDragging = false;
+    });
+
+    // Update mouse drag to use touch-compatible getEventPoint
     canvas.addEventListener('mousedown', (e) => {
       isDragging = true;
-      startX = e.clientX - offsetX;
-      startY = e.clientY - offsetY;
+      const point = getEventPoint(e);
+      startX = point.x - offsetX;
+      startY = point.y - offsetY;
       canvas.style.cursor = 'grabbing';
     });
 
@@ -183,17 +291,6 @@
     canvas.addEventListener('mouseleave', () => {
       isDragging = false;
       canvas.style.cursor = 'grab';
-    });
-
-    // Existing zoom controls
-    document.getElementById('zoomIn').addEventListener('click', () => {
-      scaleFactor *= 1.1;
-      drawImages();
-    });
-
-    document.getElementById('zoomOut').addEventListener('click', () => {
-      scaleFactor /= 1.1;
-      drawImages();
     });
 
     // Add unlock functionality
