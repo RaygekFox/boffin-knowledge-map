@@ -16,10 +16,25 @@
     canvas {
       border: 1px solid #ccc;
     }
+    .svg-container {
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: auto;
+    }
+    
+    .svg-content {
+        width: auto;
+        height: auto;
+        max-height: 100vh;
+    }
   </style>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
+  <div class="svg-container">
+    <div class="svg-content">
+      <canvas id="canvas"></canvas>
+    </div>
+  </div>
   <script>
     const canvas = document.getElementById('canvas');
     const context = canvas.getContext('2d');
