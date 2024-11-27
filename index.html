@@ -61,6 +61,47 @@
       background-color: #fff;
       transform: scale(1.1);
     }
+    .unlock-controls {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    .unlock-controls input {
+      padding: 8px 12px;
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      border-radius: 20px;
+      background-color: rgba(255, 255, 255, 0.9);
+      color: #32006E;
+      font-size: 16px;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    .unlock-controls input:focus {
+      border-color: #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .unlock-controls button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 20px;
+      background-color: rgba(255, 255, 255, 0.9);
+      color: #32006E;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .unlock-controls button:hover {
+      background-color: #fff;
+      transform: scale(1.05);
+    }
   </style>
 </head>
 <body>
@@ -73,6 +114,10 @@
     <button id="zoomIn">+</button>
     <button id="zoomOut">−</button>
   </div>
+  <div class="unlock-controls">
+    <input type="text" id="unlockInput" placeholder="Введіть код...">
+    <button id="unlockButton">Розблокувати</button>
+  </div>
   <script>
     const canvas = document.getElementById('canvas');
     const context = canvas.getContext('2d');
@@ -80,6 +125,7 @@
     let isDragging = false;
     let startX, startY;
     let offsetX = 0, offsetY = 0;
+    let showCard = true;
 
     // Load both images
     const boardImg = new Image();
@@ -108,8 +154,10 @@
       
       // Draw board
       context.drawImage(boardImg, 0, 0);
-      // Draw card at specific coordinates
-      context.drawImage(cardImg, 1203, 2260);
+      // Draw card only if showCard is true
+      if (showCard) {
+        context.drawImage(cardImg, 1056, 1200);
+      }
     }
 
     // Dragging functionality
@@ -146,6 +194,16 @@
     document.getElementById('zoomOut').addEventListener('click', () => {
       scaleFactor /= 1.1;
       drawImages();
+    });
+
+    // Add unlock functionality
+    document.getElementById('unlockButton').addEventListener('click', () => {
+      const input = document.getElementById('unlockInput');
+      if (input.value === 'Атом') {
+        showCard = false;
+        drawImages();
+        input.value = '';  // Clear input after successful unlock
+      }
     });
   </script>
 </body>
