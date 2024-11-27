@@ -16,6 +16,10 @@
     canvas {
       border: 1px solid #ccc;
       background-color: #32006E;
+      cursor: grab;
+    }
+    canvas:active {
+      cursor: grabbing;
     }
     .svg-container {
         width: 100%;
@@ -28,6 +32,35 @@
         height: auto;
         max-height: 100vh;
     }
+    .zoom-controls {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    .zoom-controls button {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      background-color: rgba(255, 255, 255, 0.9);
+      color: #32006E;
+      font-size: 24px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
+    }
+
+    .zoom-controls button:hover {
+      background-color: #fff;
+      transform: scale(1.1);
+    }
   </style>
 </head>
 <body>
@@ -36,37 +69,83 @@
       <canvas id="canvas"></canvas>
     </div>
   </div>
-  <div>
+  <div class="zoom-controls">
     <button id="zoomIn">+</button>
-    <button id="zoomOut">-</button>
+    <button id="zoomOut">−</button>
   </div>
   <script>
     const canvas = document.getElementById('canvas');
     const context = canvas.getContext('2d');
-    let scaleFactor = 1/3;  // Initial scale factor
+    let scaleFactor = 1/3;
+    let isDragging = false;
+    let startX, startY;
+    let offsetX = 0, offsetY = 0;
 
-    const img = new Image();
-    img.onload = () => {
-      drawImage();
-    };
-    img.src = '/images/Board.svg';
+    // Load both images
+    const boardImg = new Image();
+    const cardImg = new Image();
+    
+    Promise.all([
+      loadImage(boardImg, '/images/Board.svg'),
+      loadImage(cardImg, '/images/Card - Atom lvl 1.svg')
+    ]).then(() => {
+      drawImages();
+    });
 
-    function drawImage() {
-      canvas.width = img.width * scaleFactor;
-      canvas.height = img.height * scaleFactor;
-      context.setTransform(scaleFactor, 0, 0, scaleFactor, 0, 0);
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      context.drawImage(img, 0, 0);
+    function loadImage(img, src) {
+      return new Promise((resolve) => {
+        img.onload = resolve;
+        img.src = src;
+      });
     }
 
+    function drawImages() {
+      canvas.width = boardImg.width * scaleFactor;
+      canvas.height = boardImg.height * scaleFactor;
+      context.setTransform(scaleFactor, 0, 0, scaleFactor, offsetX, offsetY);
+      context.clearRect(-offsetX/scaleFactor, -offsetY/scaleFactor, 
+        canvas.width/scaleFactor, canvas.height/scaleFactor);
+      
+      // Draw board
+      context.drawImage(boardImg, 0, 0);
+      // Draw card at specific coordinates
+      context.drawImage(cardImg, 1056, 1200);
+    }
+
+    // Dragging functionality
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      startX = e.clientX - offsetX;
+      startY = e.clientY - offsetY;
+      canvas.style.cursor = 'grabbing';
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      offsetX = e.clientX - startX;
+      offsetY = e.clientY - startY;
+      drawImages();
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      isDragging = false;
+      canvas.style.cursor = 'grab';
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      isDragging = false;
+      canvas.style.cursor = 'grab';
+    });
+
+    // Existing zoom controls
     document.getElementById('zoomIn').addEventListener('click', () => {
-      scaleFactor *= 1.1;  // Increase scale factor by 10%
-      drawImage();
+      scaleFactor *= 1.1;
+      drawImages();
     });
 
     document.getElementById('zoomOut').addEventListener('click', () => {
-      scaleFactor /= 1.1;  // Decrease scale factor by 10%
-      drawImage();
+      scaleFactor /= 1.1;
+      drawImages();
     });
   </script>
 </body>
