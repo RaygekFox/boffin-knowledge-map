@@ -28,7 +28,9 @@
         height: 100%;
     }
     canvas {
-        border: 1px solid #ccc;
+        width: 100vw;
+        height: 100vh;
+        border: none;
         background-color: #32006E;
         cursor: grab;
     }
@@ -151,11 +153,16 @@
     }
 
     function drawImages() {
-        canvas.width = boardImg.width * scaleFactor;
-        canvas.height = boardImg.height * scaleFactor;
+        // Set canvas size to match viewport
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        // Clear the entire canvas
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Apply transforms for pan and zoom
         context.setTransform(scaleFactor, 0, 0, scaleFactor, offsetX, offsetY);
-        context.clearRect(-offsetX/scaleFactor, -offsetY/scaleFactor, 
-            canvas.width/scaleFactor, canvas.height/scaleFactor);
         
         // Draw board
         context.drawImage(boardImg, 0, 0);
@@ -170,7 +177,6 @@
         context.strokeStyle = '#CC99FF';
         context.fillStyle = '#869CFF';
 
-        // Draw rectangles for all cards EXCEPT the unlocked ones
         cardsData.forEach(card => {
             if (!unlockedCards.includes(card.Number)) {
                 roundRect(context, card.X, card.Y, card.width, card.height, 50);
@@ -361,6 +367,11 @@
         ctx.fill();
         ctx.stroke();
     }
+
+    // Add window resize handler to keep canvas sized to viewport
+    window.addEventListener('resize', () => {
+        drawImages();
+    });
   </script>
 </body>
 </html>
