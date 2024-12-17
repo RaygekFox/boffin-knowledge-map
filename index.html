@@ -35,35 +35,6 @@
     canvas:active {
         cursor: grabbing;
     }
-    .zoom-controls {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      display: flex;
-      gap: 10px;
-      z-index: 1000;
-    }
-
-    .zoom-controls button {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      border: none;
-      background-color: rgba(255, 255, 255, 0.9);
-      color: #32006E;
-      font-size: 24px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-      transition: all 0.3s ease;
-    }
-
-    .zoom-controls button:hover {
-      background-color: #fff;
-      transform: scale(1.1);
-    }
     .unlock-controls {
       position: absolute;
       top: 20px;
@@ -112,10 +83,6 @@
     <div class="svg-content">
       <canvas id="canvas"></canvas>
     </div>
-  </div>
-  <div class="zoom-controls">
-    <button id="zoomIn">+</button>
-    <button id="zoomOut">−</button>
   </div>
   <div class="unlock-controls">
     <input type="text" id="nameInput" placeholder="Ваше ім'я...">
@@ -221,37 +188,33 @@
       return point;
     }
 
-    function zoom(factor, centerX, centerY) {
-        // Get the canvas rect and viewport center
+    // Add wheel event listener
+    canvas.addEventListener('wheel', (e) => {
+        e.preventDefault(); // Prevent page scroll
+
         const rect = canvas.getBoundingClientRect();
-        const viewportCenterX = rect.width / 2;
-        const viewportCenterY = rect.height / 2;
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
 
-        // Convert viewport center to canvas coordinates (before zoom)
-        const canvasXBeforeZoom = (viewportCenterX - offsetX) / scaleFactor;
-        const canvasYBeforeZoom = (viewportCenterY - offsetY) / scaleFactor;
+        // Convert mouse position to canvas coordinates before zoom
+        const pointXBeforeZoom = (mouseX - offsetX) / scaleFactor;
+        const pointYBeforeZoom = (mouseY - offsetY) / scaleFactor;
 
-        // Update scale factor
-        scaleFactor *= factor;
+        // Determine zoom factor based on scroll direction
+        const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+        
+        // Update scale
+        scaleFactor *= zoomFactor;
 
-        // Calculate new canvas coordinates after zoom
-        const canvasXAfterZoom = canvasXBeforeZoom * scaleFactor;
-        const canvasYAfterZoom = canvasYBeforeZoom * scaleFactor;
+        // Calculate new position after zoom
+        const pointXAfterZoom = pointXBeforeZoom * scaleFactor;
+        const pointYAfterZoom = pointYBeforeZoom * scaleFactor;
 
-        // Adjust offset to keep viewport center point at the same place
-        offsetX = viewportCenterX - canvasXAfterZoom;
-        offsetY = viewportCenterY - canvasYAfterZoom;
+        // Adjust offset to keep mouse point in the same place
+        offsetX += mouseX - (pointXAfterZoom + offsetX);
+        offsetY += mouseY - (pointYAfterZoom + offsetY);
 
         drawImages();
-    }
-
-    // Simplify zoom button handlers since we're using viewport center
-    document.getElementById('zoomIn').addEventListener('click', () => {
-        zoom(1.1);
-    });
-
-    document.getElementById('zoomOut').addEventListener('click', () => {
-        zoom(0.9);
     });
 
     // Touch events for pinch zoom
@@ -291,7 +254,7 @@
         // Apply zoom relative to initial scale
         scaleFactor = initialScale * scale;
         
-        zoom(1, centerX, centerY);
+        drawImages();
       } else if (e.touches.length === 1 && isDragging) {
         // Handle single touch drag
         const touch = e.touches[0];
