@@ -219,43 +219,42 @@
     }
 
     function zoom(factor, centerX, centerY) {
-      // Convert center point to canvas coordinates before scaling
-      const pointBeforeScale = {
-        x: (centerX - offsetX) / scaleFactor,
-        y: (centerY - offsetY) / scaleFactor
-      };
+        // Convert screen coordinates to canvas coordinates
+        const rect = canvas.getBoundingClientRect();
+        const screenX = centerX - rect.left;
+        const screenY = centerY - rect.top;
 
-      // Apply scale
-      scaleFactor *= factor;
+        // Get the point on the canvas before zoom
+        const pointXBeforeZoom = (screenX - offsetX) / scaleFactor;
+        const pointYBeforeZoom = (screenY - offsetY) / scaleFactor;
 
-      // Convert same point after scaling
-      const pointAfterScale = {
-        x: pointBeforeScale.x * scaleFactor,
-        y: pointBeforeScale.y * scaleFactor
-      };
+        // Apply new scale
+        scaleFactor *= factor;
 
-      // Adjust offset to keep the point under cursor
-      offsetX += centerX - (pointAfterScale.x + offsetX);
-      offsetY += centerY - (pointAfterScale.y + offsetY);
+        // Get the point after zoom
+        const pointXAfterZoom = pointXBeforeZoom * scaleFactor;
+        const pointYAfterZoom = pointYBeforeZoom * scaleFactor;
 
-      drawImages();
+        // Adjust offset to keep the point in the same place
+        offsetX += screenX - (pointXAfterZoom + offsetX);
+        offsetY += screenY - (pointYAfterZoom + offsetY);
+
+        drawImages();
     }
 
     // Update zoom button handlers
     document.getElementById('zoomIn').addEventListener('click', () => {
-      const center = {
-        x: canvas.width / 2,
-        y: canvas.height / 2
-      };
-      zoom(1.1, center.x, center.y);
+        const rect = canvas.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        zoom(1.1, centerX, centerY);
     });
 
     document.getElementById('zoomOut').addEventListener('click', () => {
-      const center = {
-        x: canvas.width / 2,
-        y: canvas.height / 2
-      };
-      zoom(0.9, center.x, center.y);
+        const rect = canvas.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        zoom(0.9, centerX, centerY);
     });
 
     // Touch events for pinch zoom
@@ -313,18 +312,27 @@
 
     // Update mouse drag to use touch-compatible getEventPoint
     canvas.addEventListener('mousedown', (e) => {
-      isDragging = true;
-      const point = getEventPoint(e);
-      startX = point.x - offsetX;
-      startY = point.y - offsetY;
-      canvas.style.cursor = 'grabbing';
+        isDragging = true;
+        const rect = canvas.getBoundingClientRect();
+        startX = e.clientX - rect.left;
+        startY = e.clientY - rect.top;
+        canvas.style.cursor = 'grabbing';
     });
 
     canvas.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      offsetX = e.clientX - startX;
-      offsetY = e.clientY - startY;
-      drawImages();
+        if (!isDragging) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        offsetX += (x - startX);
+        offsetY += (y - startY);
+        
+        startX = x;
+        startY = y;
+        
+        drawImages();
     });
 
     canvas.addEventListener('mouseup', () => {
