@@ -219,42 +219,36 @@
     }
 
     function zoom(factor, centerX, centerY) {
-        // Convert screen coordinates to canvas coordinates
+        // Get the canvas rect and viewport center
         const rect = canvas.getBoundingClientRect();
-        const screenX = centerX - rect.left;
-        const screenY = centerY - rect.top;
+        const viewportCenterX = rect.width / 2;
+        const viewportCenterY = rect.height / 2;
 
-        // Get the point on the canvas before zoom
-        const pointXBeforeZoom = (screenX - offsetX) / scaleFactor;
-        const pointYBeforeZoom = (screenY - offsetY) / scaleFactor;
+        // Convert viewport center to canvas coordinates (before zoom)
+        const canvasXBeforeZoom = (viewportCenterX - offsetX) / scaleFactor;
+        const canvasYBeforeZoom = (viewportCenterY - offsetY) / scaleFactor;
 
-        // Apply new scale
+        // Update scale factor
         scaleFactor *= factor;
 
-        // Get the point after zoom
-        const pointXAfterZoom = pointXBeforeZoom * scaleFactor;
-        const pointYAfterZoom = pointYBeforeZoom * scaleFactor;
+        // Calculate new canvas coordinates after zoom
+        const canvasXAfterZoom = canvasXBeforeZoom * scaleFactor;
+        const canvasYAfterZoom = canvasYBeforeZoom * scaleFactor;
 
-        // Adjust offset to keep the point in the same place
-        offsetX += screenX - (pointXAfterZoom + offsetX);
-        offsetY += screenY - (pointYAfterZoom + offsetY);
+        // Adjust offset to keep viewport center point at the same place
+        offsetX = viewportCenterX - canvasXAfterZoom;
+        offsetY = viewportCenterY - canvasYAfterZoom;
 
         drawImages();
     }
 
-    // Update zoom button handlers
+    // Simplify zoom button handlers since we're using viewport center
     document.getElementById('zoomIn').addEventListener('click', () => {
-        const rect = canvas.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        zoom(1.1, centerX, centerY);
+        zoom(1.1);
     });
 
     document.getElementById('zoomOut').addEventListener('click', () => {
-        const rect = canvas.getBoundingClientRect();
-        const centerX = rect.left + rect.width / 2;
-        const centerY = rect.top + rect.height / 2;
-        zoom(0.9, centerX, centerY);
+        zoom(0.9);
     });
 
     // Touch events for pinch zoom
