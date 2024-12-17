@@ -193,16 +193,16 @@
         const username = localStorage.getItem('username');
         if (!username || !cardsData) return;
 
-        // Draw rectangles for cards
+        // Draw rectangles for LOCKED cards
         const unlockedCards = JSON.parse(localStorage.getItem(`unlockedCards_${username}`));
         
         context.lineWidth = 10;
         context.strokeStyle = '#CC99FF';
         context.fillStyle = '#869CFF';
 
-        unlockedCards.forEach(cardNumber => {
-            const card = cardsData.find(c => c.Number === cardNumber);
-            if (card) {
+        // Draw rectangles for all cards EXCEPT the unlocked ones
+        cardsData.forEach(card => {
+            if (!unlockedCards.includes(card.Number)) {
                 roundRect(context, card.X, card.Y, card.width, card.height, 50);
             }
         });
