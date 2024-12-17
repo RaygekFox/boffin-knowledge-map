@@ -115,6 +115,7 @@
     <button id="zoomOut">−</button>
   </div>
   <div class="unlock-controls">
+    <input type="text" id="nameInput" placeholder="Ваше ім'я...">
     <input type="text" id="unlockInput" placeholder="Введіть код...">
     <button id="unlockButton">Розблокувати</button>
   </div>
@@ -149,19 +150,62 @@
       });
     }
 
+    // Load cards data
+    let cardsData;
+    fetch('cards.json')
+        .then(response => response.json())
+        .then(data => {
+            cardsData = data;
+            initializeStorage();
+            drawImages();
+        });
+
+    // Initialize storage for new users
+    function initializeStorage() {
+        const username = localStorage.getItem('username');
+        if (!username) {
+            return; // Wait for user to input name
+        }
+
+        if (!localStorage.getItem(`unlockedCards_${username}`)) {
+            // Start with card Number 1
+            localStorage.setItem(`unlockedCards_${username}`, JSON.stringify([1]));
+        }
+        
+        if (!localStorage.getItem(`availableCards_${username}`)) {
+            // Get connections from card 1
+            const firstCard = cardsData.find(c => c.Number === 1);
+            localStorage.setItem(`availableCards_${username}`, 
+                JSON.stringify(firstCard ? firstCard.Connections : []));
+        }
+    }
+
     function drawImages() {
-      canvas.width = boardImg.width * scaleFactor;
-      canvas.height = boardImg.height * scaleFactor;
-      context.setTransform(scaleFactor, 0, 0, scaleFactor, offsetX, offsetY);
-      context.clearRect(-offsetX/scaleFactor, -offsetY/scaleFactor, 
-        canvas.width/scaleFactor, canvas.height/scaleFactor);
-      
-      // Draw board
-      context.drawImage(boardImg, 0, 0);
-      // Draw card only if showCard is true
-      if (showCard) {
-        context.drawImage(cardImg, 1203, 2260);
-      }
+        canvas.width = boardImg.width * scaleFactor;
+        canvas.height = boardImg.height * scaleFactor;
+        context.setTransform(scaleFactor, 0, 0, scaleFactor, offsetX, offsetY);
+        context.clearRect(-offsetX/scaleFactor, -offsetY/scaleFactor, 
+            canvas.width/scaleFactor, canvas.height/scaleFactor);
+        
+        // Draw board
+        context.drawImage(boardImg, 0, 0);
+
+        const username = localStorage.getItem('username');
+        if (!username || !cardsData) return;
+
+        // Draw rectangles for cards
+        const unlockedCards = JSON.parse(localStorage.getItem(`unlockedCards_${username}`));
+        
+        context.lineWidth = 10;
+        context.strokeStyle = '#CC99FF';
+        context.fillStyle = '#869CFF';
+
+        unlockedCards.forEach(cardNumber => {
+            const card = cardsData.find(c => c.Number === cardNumber);
+            if (card) {
+                roundRect(context, card.X, card.Y, card.width, card.height, 50);
+            }
+        });
     }
 
     function getEventPoint(e) {
@@ -295,13 +339,60 @@
 
     // Add unlock functionality
     document.getElementById('unlockButton').addEventListener('click', () => {
-      const input = document.getElementById('unlockInput');
-      if (input.value === 'Атом') {
-        showCard = false;
-        drawImages();
-        input.value = '';  // Clear input after successful unlock
-      }
+        const username = localStorage.getItem('username');
+        if (!username) {
+            alert('Please enter your name first');
+            return;
+        }
+
+        const input = document.getElementById('unlockInput');
+        const cardNumber = parseInt(input.value);
+        
+        const availableCards = JSON.parse(localStorage.getItem(`availableCards_${username}`));
+        
+        if (availableCards.includes(cardNumber)) {
+            const unlockedCards = JSON.parse(localStorage.getItem(`unlockedCards_${username}`));
+            
+            // Remove from available and add to unlocked
+            localStorage.setItem(`unlockedCards_${username}`, 
+                JSON.stringify([...unlockedCards, cardNumber]));
+            
+            // Update available cards
+            const card = cardsData.find(c => c.Number === cardNumber);
+            const newAvailable = availableCards
+                .filter(num => num !== cardNumber) // Remove current card
+                .concat(card.Connections || []); // Add connections
+            
+            localStorage.setItem(`availableCards_${username}`, 
+                JSON.stringify([...new Set(newAvailable)])); // Remove duplicates
+            
+            input.value = '';
+            drawImages();
+        }
     });
+
+    // Add name input handling
+    document.getElementById('nameInput').addEventListener('change', (e) => {
+        const username = e.target.value.trim();
+        if (username) {
+            localStorage.setItem('username', username);
+            initializeStorage();
+            drawImages();
+        }
+    });
+
+    // Helper function for drawing rounded rectangles
+    function roundRect(ctx, x, y, width, height, radius) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.arcTo(x + width, y, x + width, y + height, radius);
+        ctx.arcTo(x + width, y + height, x, y + height, radius);
+        ctx.arcTo(x, y + height, x, y, radius);
+        ctx.arcTo(x, y, x + width, y, radius);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    }
   </script>
 </body>
 </html>
