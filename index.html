@@ -157,7 +157,75 @@
         }
     }
 
-    function drawImages() {
+    // Add these variables for animation
+    let animatingCard = null;
+    let animationProgress = 0;
+    let targetOffsetX = 0;
+    let targetOffsetY = 0;
+    let startOffsetX = 0;
+    let startOffsetY = 0;
+    let targetScale = 1;
+    let startScale = 1;
+
+    function animateToCard(cardNumber) {
+        const card = cardsData.find(c => c.Number === cardNumber);
+        if (!card) return;
+
+        // Save starting position
+        startOffsetX = offsetX;
+        startOffsetY = offsetY;
+        startScale = scaleFactor;
+
+        // Calculate target position (center card on screen)
+        const cardCenterX = card.X + card.width / 2;
+        const cardCenterY = card.Y + card.height / 2;
+        
+        // Calculate required offset to center the card
+        targetOffsetX = canvas.width / 2 - cardCenterX * startScale;
+        targetOffsetY = canvas.height / 2 - cardCenterY * startScale;
+
+        // Set target scale to show the card at a good size
+        targetScale = Math.min(
+            canvas.width / (card.width * 2),
+            canvas.height / (card.height * 2)
+        );
+
+        // Start animation
+        animatingCard = card;
+        animationProgress = 0;
+        requestAnimationFrame(animate);
+    }
+
+    function animate(timestamp) {
+        if (!animatingCard) return;
+
+        // Update animation progress
+        animationProgress += 0.02; // Adjust speed here
+        
+        if (animationProgress >= 1) {
+            // Animation complete
+            animatingCard = null;
+            drawImages();
+            return;
+        }
+
+        // Easing function for smooth animation
+        const easing = t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+        const progress = easing(animationProgress);
+
+        // Interpolate position and scale
+        offsetX = startOffsetX + (targetOffsetX - startOffsetX) * progress;
+        offsetY = startOffsetY + (targetOffsetY - startOffsetY) * progress;
+        scaleFactor = startScale + (targetScale - startScale) * progress;
+
+        // Draw frame with disappearing rectangle effect
+        drawImages(animatingCard, animationProgress);
+        
+        requestAnimationFrame(animate);
+    }
+
+    // Modify drawImages to handle animation
+    function drawImages(animCard = null, progress = 0) {
         // Set canvas size to match viewport
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -175,7 +243,6 @@
         const username = localStorage.getItem('username');
         if (!username || !cardsData) return;
 
-        // Draw rectangles for LOCKED cards
         const unlockedCards = JSON.parse(localStorage.getItem(`unlockedCards_${username}`));
         
         context.lineWidth = 10;
@@ -184,7 +251,35 @@
 
         cardsData.forEach(card => {
             if (!unlockedCards.includes(card.Number)) {
-                roundRect(context, card.X, card.Y, card.width, card.height, 50);
+                if (animCard && card.Number === animCard.Number) {
+                    // Animate disappearing rectangle
+                    context.save();
+                    context.translate(
+                        card.X + card.width / 2,
+                        card.Y + card.height / 2
+                    );
+                    
+                    // Scale and fade effect
+                    const scale = 1 + progress * 0.5;
+                    context.scale(scale, scale);
+                    context.globalAlpha = 1 - progress;
+                    
+                    // Wobble effect
+                    const wobble = Math.sin(progress * Math.PI * 8) * (1 - progress) * 10;
+                    context.rotate(wobble * Math.PI / 180);
+                    
+                    // Draw rectangle
+                    roundRect(context, 
+                        -card.width / 2, -card.height / 2,
+                        card.width, card.height,
+                        50
+                    );
+                    
+                    context.restore();
+                } else {
+                    // Draw normal rectangle
+                    roundRect(context, card.X, card.Y, card.width, card.height, 50);
+                }
             }
         });
     }
@@ -417,6 +512,9 @@
         
         input.value = '';
         drawImages();
+
+        // Start animation for the unlocked card
+        animateToCard(cardToUnlock);
     });
 
     // Add name input handling
