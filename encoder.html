@@ -168,9 +168,8 @@
             for (let i = 0; i < username.length; i++) {
                 const char = username.charCodeAt(i);
                 hash = ((hash << 5) - hash) + char;
-                hash = hash & 0xFFFF; // Keep only 16 bits
             }
-            return hash;
+            return hash & 0xFFFF; // Keep only 16 bits
         }
 
         function generateCode() {
