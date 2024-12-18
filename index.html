@@ -181,13 +181,13 @@
         const cardCenterY = card.Y + card.height / 2;
         
         // Calculate required offset to center the card
-        targetOffsetX = canvas.width / 2 - cardCenterX * startScale;
-        targetOffsetY = canvas.height / 2 - cardCenterY * startScale;
+        targetOffsetX = canvas.width / 2 - cardCenterX * scaleFactor;
+        targetOffsetY = canvas.height / 2 - cardCenterY * scaleFactor;
 
         // Set target scale to show the card at a good size
         targetScale = Math.min(
-            canvas.width / (card.width * 2),
-            canvas.height / (card.height * 2)
+            canvas.width / (card.width * 3),
+            canvas.height / (card.height * 3)
         );
 
         // Start animation
@@ -450,7 +450,7 @@
         return hash;
     }
 
-    // Modify unlock button handler
+    // Modify unlock button handler to ensure animation starts after storage is updated
     document.getElementById('unlockButton').addEventListener('click', () => {
         const username = localStorage.getItem('username');
         if (!username) {
@@ -511,8 +511,7 @@
             JSON.stringify([...new Set(newAvailable)]));
         
         input.value = '';
-        drawImages();
-
+        
         // Start animation for the unlocked card
         animateToCard(cardToUnlock);
     });
