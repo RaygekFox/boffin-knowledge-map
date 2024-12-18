@@ -562,40 +562,74 @@
       canvas.style.cursor = 'grab';
     });
 
+    function encodeUnlockCode(cardNumber, username = null, isCommon = false) {
+        // Increase random bits from 8 to 24 bits
+        const randomBits = Math.floor(Math.random() * 0xFFFFFF);
+        
+        // Calculate timestamp bits (last 16 bits of current timestamp)
+        const timestampBits = Date.now() & 0xFFFF;
+        
+        // Structure (48 bits total):
+        // - Card number: 8 bits (0-255)
+        // - User hash: 16 bits
+        // - Random: 24 bits (increased from 8)
+        // - Flags: 2 bits (isCommon, isRandom)
+        // - Timestamp: 16 bits
+        let value = cardNumber;
+        
+        if (username) {
+            value |= (hashUsername(username) & 0xFFFF) << 8;
+        }
+        
+        value |= randomBits << 24;
+        value |= (isCommon ? 1 : 0) << 46;
+        value |= (username ? 0 : 1) << 47;
+        value |= timestampBits << 48;
+        
+        // Convert to base36 for shorter string
+        // This will give us about 10 characters
+        return value.toString(36).toUpperCase();
+    }
+
     function decodeUnlockCode(code, username) {
         try {
-            // Convert code to numeric value
-            const numericValue = parseInt(code, 36);
+            // Convert from base36
+            const value = parseInt(code, 36);
             
-            // Extract properties
-            const isCommon = (numericValue & 0x10000000) !== 0;
-            const isRandom = (numericValue & 0x20000000) !== 0;
-            const cardNumber = numericValue & 0xFF;
-            const userHash = (numericValue >> 8) & 0xFFFF;
-            const randomBits = (numericValue >> 24) & 0xFF; // Extract random bits
+            // Extract components
+            const isCommon = (value >> 46) & 1;
+            const isRandom = (value >> 47) & 1;
+            const cardNumber = value & 0xFF;
+            const userHash = (value >> 8) & 0xFFFF;
+            const randomBits = (value >> 24) & 0xFFFFFF;
+            const timestampBits = (value >> 48) & 0xFFFF;
             
             // For individual codes, verify username
-            if (!isCommon) {
+            if (!isCommon && !isRandom) {
                 const calculatedHash = hashUsername(username) & 0xFFFF;
                 if (calculatedHash !== userHash) {
-                    return null; // Invalid user
+                    return null;
                 }
             }
             
             return {
-                isRandom,
                 cardNumber,
-                randomBits
+                isCommon,
+                isRandom,
+                randomBits,
+                timestampBits
             };
-        } catch {
-            return null; // Invalid code
+        } catch (e) {
+            return null;
         }
     }
 
+    // Helper function to hash username
     function hashUsername(username) {
         let hash = 0;
         for (let i = 0; i < username.length; i++) {
-            hash = ((hash << 5) - hash) + username.charCodeAt(i);
+            const char = username.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
             hash = hash & hash; // Convert to 32-bit integer
         }
         return hash;
