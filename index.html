@@ -593,10 +593,12 @@
 
     function decodeUnlockCode(code, username) {
         try {
+            console.log('Decoding:', { code, username });
+            
             // Convert from base36 to BigInt
             const value = BigInt(`0x${BigInt(parseInt(code, 36)).toString(16)}`);
+            console.log('Decoded value:', value.toString(16));
             
-            // Extract components using BigInt operations
             const cardNumber = Number(value & 0xFFn);
             const userHash = Number((value >> 8n) & 0xFFFFn);
             const randomBits = Number((value >> 24n) & 0xFFFFFFn);
@@ -604,10 +606,21 @@
             const isRandom = Boolean((value >> 49n) & 1n);
             const timestampBits = Number((value >> 50n) & 0xFFFFn);
             
+            console.log('Decoded components:', {
+                cardNumber,
+                userHash,
+                randomBits,
+                isCommon,
+                isRandom,
+                timestampBits
+            });
+            
             // For individual codes, verify username
             if (!isCommon && !isRandom) {
                 const calculatedHash = hashUsername(username) & 0xFFFF;
+                console.log('Hash check:', { calculatedHash, storedHash: userHash });
                 if (calculatedHash !== userHash) {
+                    console.log('Hash mismatch');
                     return null;
                 }
             }
