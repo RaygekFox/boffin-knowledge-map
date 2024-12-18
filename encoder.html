@@ -203,11 +203,8 @@
         function encodeUnlockCode(cardNumber, username = null, isCommon = false) {
             console.log('Encoding:', { cardNumber, username, isCommon });
             
-            // Start with a 64-bit zero value
-            let value = 0n;
-            
-            // Add card number (0-7 bits)
-            value |= BigInt(cardNumber & 0xFF);
+            // Start with the card number
+            let value = BigInt(cardNumber & 0xFF);
             console.log('After card:', value.toString(16));
             
             // Add user hash (8-23 bits)
@@ -228,15 +225,11 @@
             console.log('After flags:', value.toString(16));
             
             // Add timestamp (50-63 bits)
-            const timestampBits = BigInt(Date.now() & 0x3FFF); // 14 bits instead of 16
+            const timestampBits = BigInt(Date.now() & 0x3FFF);
             value |= timestampBits << 50n;
             
-            // Convert to hex string first, then to base36
-            const hexStr = value.toString(16).padStart(16, '0');
-            const code = BigInt(`0x${hexStr}`).toString(36).toUpperCase();
-            console.log('Final hex:', hexStr);
-            console.log('Generated code:', code);
-            return code;
+            console.log('Final value:', value.toString(16));
+            return value.toString(36).toUpperCase();
         }
     </script>
 </body>

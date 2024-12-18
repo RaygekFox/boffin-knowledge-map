@@ -595,18 +595,17 @@
         try {
             console.log('Decoding:', { code, username });
             
-            // Convert from base36 to hex string
+            // Convert from base36 to BigInt directly
             const value = BigInt(parseInt(code, 36));
-            const hexStr = value.toString(16).padStart(16, '0');
-            console.log('Decoded hex:', hexStr);
+            console.log('Decoded value:', value.toString(16));
             
-            // Extract components from hex string
-            const cardNumber = Number(BigInt(`0x${hexStr}`) & 0xFFn);
-            const userHash = Number((BigInt(`0x${hexStr}`) >> 8n) & 0xFFFFn);
-            const randomBits = Number((BigInt(`0x${hexStr}`) >> 24n) & 0xFFFFFFn);
-            const isCommon = Boolean((BigInt(`0x${hexStr}`) >> 48n) & 1n);
-            const isRandom = Boolean((BigInt(`0x${hexStr}`) >> 49n) & 1n);
-            const timestampBits = Number((BigInt(`0x${hexStr}`) >> 50n) & 0x3FFFn);
+            // Extract components
+            const cardNumber = Number(value & 0xFFn);
+            const userHash = Number((value >> 8n) & 0xFFFFn);
+            const randomBits = Number((value >> 24n) & 0xFFFFFFn);
+            const isCommon = Boolean((value >> 48n) & 1n);
+            const isRandom = Boolean((value >> 49n) & 1n);
+            const timestampBits = Number((value >> 50n) & 0x3FFFn);
             
             console.log('Decoded components:', {
                 cardNumber,
