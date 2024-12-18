@@ -150,6 +150,11 @@
             localStorage.setItem(`availableCards_${username}`, 
                 JSON.stringify(firstCard ? firstCard.Connections : []));
         }
+
+        // Initialize used codes array if it doesn't exist
+        if (!localStorage.getItem(`usedCodes_${username}`)) {
+            localStorage.setItem(`usedCodes_${username}`, JSON.stringify([]));
+        }
     }
 
     function drawImages() {
@@ -311,7 +316,46 @@
       canvas.style.cursor = 'grab';
     });
 
-    // Add unlock functionality
+    function decodeUnlockCode(code, username) {
+        try {
+            // Convert code to numeric value
+            const numericValue = parseInt(code, 36);
+            
+            // Extract properties
+            const isCommon = (numericValue & 0x10000000) !== 0;
+            const isRandom = (numericValue & 0x20000000) !== 0;
+            const cardNumber = numericValue & 0xFF;
+            const userHash = (numericValue >> 8) & 0xFFFF;
+            const randomBits = (numericValue >> 24) & 0xFF; // Extract random bits
+            
+            // For individual codes, verify username
+            if (!isCommon) {
+                const calculatedHash = hashUsername(username) & 0xFFFF;
+                if (calculatedHash !== userHash) {
+                    return null; // Invalid user
+                }
+            }
+            
+            return {
+                isRandom,
+                cardNumber,
+                randomBits
+            };
+        } catch {
+            return null; // Invalid code
+        }
+    }
+
+    function hashUsername(username) {
+        let hash = 0;
+        for (let i = 0; i < username.length; i++) {
+            hash = ((hash << 5) - hash) + username.charCodeAt(i);
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return hash;
+    }
+
+    // Modify unlock button handler
     document.getElementById('unlockButton').addEventListener('click', () => {
         const username = localStorage.getItem('username');
         if (!username) {
@@ -320,29 +364,57 @@
         }
 
         const input = document.getElementById('unlockInput');
-        const cardNumber = parseInt(input.value);
-        
-        const availableCards = JSON.parse(localStorage.getItem(`availableCards_${username}`));
-        
-        if (availableCards.includes(cardNumber)) {
-            const unlockedCards = JSON.parse(localStorage.getItem(`unlockedCards_${username}`));
-            
-            // Remove from available and add to unlocked
-            localStorage.setItem(`unlockedCards_${username}`, 
-                JSON.stringify([...unlockedCards, cardNumber]));
-            
-            // Update available cards
-            const card = cardsData.find(c => c.Number === cardNumber);
-            const newAvailable = availableCards
-                .filter(num => num !== cardNumber) // Remove current card
-                .concat(card.Connections || []); // Add connections
-            
-            localStorage.setItem(`availableCards_${username}`, 
-                JSON.stringify([...new Set(newAvailable)])); // Remove duplicates
-            
-            input.value = '';
-            drawImages();
+        const code = input.value.trim().toUpperCase();
+
+        // Check if code was already used
+        const usedCodes = JSON.parse(localStorage.getItem(`usedCodes_${username}`) || '[]');
+        if (usedCodes.includes(code)) {
+            alert('This code has already been used');
+            return;
         }
+        
+        const decodedCode = decodeUnlockCode(code, username);
+        if (!decodedCode) {
+            alert('Invalid code');
+            return;
+        }
+
+        const availableCards = JSON.parse(localStorage.getItem(`availableCards_${username}`));
+        let cardToUnlock;
+
+        if (decodedCode.isRandom) {
+            // Use the random bits to determine which card to unlock
+            const index = decodedCode.randomBits % availableCards.length;
+            cardToUnlock = availableCards[index];
+        } else {
+            cardToUnlock = decodedCode.cardNumber;
+            if (!availableCards.includes(cardToUnlock)) {
+                alert('This card is not available yet');
+                return;
+            }
+        }
+
+        // Store the used code
+        localStorage.setItem(`usedCodes_${username}`, 
+            JSON.stringify([...usedCodes, code]));
+
+        const unlockedCards = JSON.parse(localStorage.getItem(`unlockedCards_${username}`));
+        
+        // Remove from available and add to unlocked
+        localStorage.setItem(`unlockedCards_${username}`, 
+            JSON.stringify([...unlockedCards, cardToUnlock]));
+        
+        // Update available cards
+        const card = cardsData.find(c => c.Number === cardToUnlock);
+        const newAvailable = availableCards
+            .filter(num => num !== cardToUnlock)
+            .concat(card.Connections || []);
+        
+        localStorage.setItem(`availableCards_${username}`, 
+            JSON.stringify([...new Set(newAvailable)]));
+        
+        input.value = '';
+        drawImages();
     });
 
     // Add name input handling

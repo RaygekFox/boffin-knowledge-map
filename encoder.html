@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Code Generator</title>
+    <style>
+        body { padding: 20px; font-family: Arial; }
+        .form-group { margin: 10px 0; }
+        input, select { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="form-group">
+        <label>Code Type:</label><br>
+        <select id="codeType">
+            <option value="common-specific">Common Specific</option>
+            <option value="common-random">Common Random</option>
+            <option value="individual-specific">Individual Specific</option>
+            <option value="individual-random">Individual Random</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label>Username (for individual codes):</label><br>
+        <input type="text" id="username">
+    </div>
+    <div class="form-group">
+        <label>Card Number (for specific codes):</label><br>
+        <input type="number" id="cardNumber" min="1" max="255">
+    </div>
+    <button onclick="generateCode()">Generate Code</button>
+    <div id="result" style="margin-top: 20px;"></div>
+
+    <script>
+        function hashUsername(username) {
+            let hash = 0;
+            for (let i = 0; i < username.length; i++) {
+                hash = ((hash << 5) - hash) + username.charCodeAt(i);
+                hash = hash & hash;
+            }
+            return hash;
+        }
+
+        function generateCode() {
+            const codeType = document.getElementById('codeType').value;
+            const username = document.getElementById('username').value;
+            const cardNumber = parseInt(document.getElementById('cardNumber').value) || 0;
+
+            let numericValue = cardNumber & 0xFF;
+
+            // Add username hash for individual codes
+            if (codeType.startsWith('individual')) {
+                if (!username) {
+                    alert('Username required for individual codes');
+                    return;
+                }
+                const userHash = hashUsername(username) & 0xFFFF;
+                numericValue |= (userHash << 8);
+            }
+
+            // Add random bits (8 bits of randomness)
+            const randomBits = Math.floor(Math.random() * 256);
+            numericValue |= (randomBits << 24);
+
+            // Add type flags
+            if (codeType.startsWith('common')) {
+                numericValue |= 0x10000000;
+            }
+            if (codeType.includes('random')) {
+                numericValue |= 0x20000000;
+            }
+
+            // Convert to base36 string
+            const code = numericValue.toString(36).toUpperCase();
+            
+            document.getElementById('result').innerHTML = 
+                `Generated Code: <strong>${code}</strong>`;
+        }
+    </script>
+</body>
+</html>
