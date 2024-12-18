@@ -182,22 +182,24 @@
         const cardCenterX = card.X + card.width / 2;
         const cardCenterY = card.Y + card.height / 2;
         
-        // Calculate required offset to center the card
+        // Calculate required offset to center the card in viewport
+        // We need to account for the current scale factor
         targetOffsetX = canvas.width/2 - (cardCenterX * scaleFactor);
         targetOffsetY = canvas.height/2 - (cardCenterY * scaleFactor);
-
-        console.log('Animation targets:', {
-            startOffset: { x: offsetX, y: offsetY },
-            targetOffset: { x: targetOffsetX, y: targetOffsetY },
-            cardCenter: { x: cardCenterX, y: cardCenterY },
-            viewport: { width: canvas.width, height: canvas.height }
-        });
 
         // Set target scale to show the card at a good size
         targetScale = Math.min(
             canvas.width / (card.width * 3),
             canvas.height / (card.height * 3)
         );
+
+        console.log('Animation targets:', {
+            startOffset: { x: offsetX, y: offsetY },
+            targetOffset: { x: targetOffsetX, y: targetOffsetY },
+            cardCenter: { x: cardCenterX, y: cardCenterY },
+            viewport: { width: canvas.width, height: canvas.height },
+            scales: { current: scaleFactor, target: targetScale }
+        });
 
         // Start animation
         animatingCard = card;
@@ -222,10 +224,16 @@
         const easing = t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
         const progress = easing(animationProgress);
 
-        // Interpolate position and scale
+        // Calculate current scale
+        const currentScale = startScale + (targetScale - startScale) * progress;
+
+        // Adjust offsets based on scale change
+        const scaleRatio = currentScale / startScale;
+        
+        // Interpolate position with scale compensation
         offsetX = startOffsetX + (targetOffsetX - startOffsetX) * progress;
         offsetY = startOffsetY + (targetOffsetY - startOffsetY) * progress;
-        scaleFactor = startScale + (targetScale - startScale) * progress;
+        scaleFactor = currentScale;
 
         // Draw frame with disappearing rectangle effect
         drawImages(animatingCard, animationProgress);
