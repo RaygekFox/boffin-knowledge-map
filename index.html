@@ -171,7 +171,7 @@
         const card = cardsData.find(c => c.Number === cardNumber);
         if (!card) return;
 
-        console.log('Animating to card:', card); // Debug log
+        console.log('Animating to card:', card);
 
         // Save starting position
         startOffsetX = offsetX;
@@ -183,12 +183,11 @@
         const cardCenterY = card.Y + card.height / 2;
         
         // Calculate required offset to center the card
-        // We need to move the card's center point to the center of the viewport
-        targetOffsetX = (canvas.width / 2) - (cardCenterX * scaleFactor);
-        targetOffsetY = (canvas.height / 2) - (cardCenterY * scaleFactor);
+        targetOffsetX = canvas.width/2 - (cardCenterX * scaleFactor);
+        targetOffsetY = canvas.height/2 - (cardCenterY * scaleFactor);
 
-        console.log('Animation targets:', { // Debug log
-            startOffset: { x: startOffsetX, y: startOffsetY },
+        console.log('Animation targets:', {
+            startOffset: { x: offsetX, y: offsetY },
             targetOffset: { x: targetOffsetX, y: targetOffsetY },
             cardCenter: { x: cardCenterX, y: cardCenterY },
             viewport: { width: canvas.width, height: canvas.height }
@@ -247,15 +246,15 @@
         // Apply transforms for pan and zoom
         context.setTransform(scaleFactor, 0, 0, scaleFactor, offsetX, offsetY);
         
-        // Only draw if image is loaded
-        if (boardImg.complete && !boardImg.naturalWidth === 0) {
+        // Draw board
+        if (boardImg.complete && boardImg.naturalWidth > 0) {
             context.drawImage(boardImg, 0, 0);
         }
 
         const username = localStorage.getItem('username');
         if (!username || !cardsData) return;
 
-        const unlockedCards = JSON.parse(localStorage.getItem(`unlockedCards_${username}`));
+        const unlockedCards = JSON.parse(localStorage.getItem(`unlockedCards_${username}`)) || [];
         
         context.lineWidth = 10;
         context.strokeStyle = '#CC99FF';
