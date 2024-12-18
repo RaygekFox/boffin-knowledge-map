@@ -247,8 +247,10 @@
         // Apply transforms for pan and zoom
         context.setTransform(scaleFactor, 0, 0, scaleFactor, offsetX, offsetY);
         
-        // Draw board
-        context.drawImage(boardImg, 0, 0);
+        // Only draw if image is loaded
+        if (boardImg.complete && !boardImg.naturalWidth === 0) {
+            context.drawImage(boardImg, 0, 0);
+        }
 
         const username = localStorage.getItem('username');
         if (!username || !cardsData) return;
