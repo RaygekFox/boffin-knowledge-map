@@ -203,30 +203,38 @@
         function encodeUnlockCode(cardNumber, username = null, isCommon = false) {
             console.log('Encoding:', { cardNumber, username, isCommon });
             
-            // Use BigInt for larger numbers
-            let value = BigInt(cardNumber);
-            console.log('Initial value:', value.toString(16));
+            // Start with a 64-bit zero value
+            let value = 0n;
             
-            const randomBits = BigInt(Math.floor(Math.random() * 0xFFFFFF));
-            const timestampBits = BigInt(Date.now() & 0xFFFF);
+            // Add card number (0-7 bits)
+            value |= BigInt(cardNumber & 0xFF);
+            console.log('After card:', value.toString(16));
             
+            // Add user hash (8-23 bits)
             if (username) {
                 const userHash = BigInt(hashUsername(username) & 0xFFFF);
                 value |= userHash << 8n;
-                console.log('After user hash:', value.toString(16));
+                console.log('After hash:', value.toString(16));
             }
             
+            // Add random (24-47 bits)
+            const randomBits = BigInt(Math.floor(Math.random() * 0xFFFFFF));
             value |= randomBits << 24n;
             console.log('After random:', value.toString(16));
             
+            // Add flags (48-49 bits)
             value |= BigInt(isCommon ? 1 : 0) << 48n;
             value |= BigInt(username ? 0 : 1) << 49n;
             console.log('After flags:', value.toString(16));
             
+            // Add timestamp (50-63 bits)
+            const timestampBits = BigInt(Date.now() & 0x3FFF); // 14 bits instead of 16
             value |= timestampBits << 50n;
-            console.log('Final value:', value.toString(16));
             
-            const code = value.toString(36).toUpperCase();
+            // Convert to hex string first, then to base36
+            const hexStr = value.toString(16).padStart(16, '0');
+            const code = BigInt(`0x${hexStr}`).toString(36).toUpperCase();
+            console.log('Final hex:', hexStr);
             console.log('Generated code:', code);
             return code;
         }
