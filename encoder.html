@@ -201,30 +201,28 @@
         }
 
         function encodeUnlockCode(cardNumber, username = null, isCommon = false) {
-            // Increase random bits from 8 to 24 bits
-            const randomBits = Math.floor(Math.random() * 0xFFFFFF);
+            // Use BigInt for larger numbers
+            let value = BigInt(cardNumber);
             
-            // Calculate timestamp bits (last 16 bits of current timestamp)
-            const timestampBits = Date.now() & 0xFFFF;
+            // Structure:
+            // - Card number: 0-7 (8 bits)
+            // - User hash: 8-23 (16 bits)
+            // - Random: 24-47 (24 bits)
+            // - Flags: 48-49 (2 bits)
+            // - Timestamp: 50-65 (16 bits)
             
-            // Structure (48 bits total):
-            // - Card number: 8 bits (0-255)
-            // - User hash: 16 bits
-            // - Random: 24 bits (increased from 8)
-            // - Flags: 2 bits (isCommon, isRandom)
-            // - Timestamp: 16 bits
-            let value = cardNumber;
+            const randomBits = BigInt(Math.floor(Math.random() * 0xFFFFFF));
+            const timestampBits = BigInt(Date.now() & 0xFFFF);
             
             if (username) {
-                value |= (hashUsername(username) & 0xFFFF) << 8;
+                value |= BigInt(hashUsername(username) & 0xFFFF) << 8n;
             }
             
-            value |= randomBits << 24;
-            value |= (isCommon ? 1 : 0) << 46;
-            value |= (username ? 0 : 1) << 47;
-            value |= timestampBits << 48;
+            value |= randomBits << 24n;
+            value |= BigInt(isCommon ? 1 : 0) << 48n;
+            value |= BigInt(username ? 0 : 1) << 49n;
+            value |= timestampBits << 50n;
             
-            // Convert to base36 for shorter string
             return value.toString(36).toUpperCase();
         }
     </script>
