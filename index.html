@@ -167,38 +167,70 @@
     let targetScale = 1;
     let startScale = 1;
 
+    function getWorldCoordinates(screenX, screenY) {
+        // Convert screen coordinates to world coordinates
+        const worldX = (screenX - offsetX) / scaleFactor;
+        const worldY = (screenY - offsetY) / scaleFactor;
+        return { x: worldX, y: worldY };
+    }
+
+    function getViewportCenter() {
+        // Get the center point of the viewport in world coordinates
+        const centerScreen = {
+            x: canvas.width / 2,
+            y: canvas.height / 2
+        };
+        return getWorldCoordinates(centerScreen.x, centerScreen.y);
+    }
+
     function animateToCard(cardNumber) {
         const card = cardsData.find(c => c.Number === cardNumber);
         if (!card) return;
 
-        console.log('Animating to card:', card);
+        // Log current viewport center before animation
+        const startCenter = getViewportCenter();
+        console.log('Current viewport center (world coordinates):', startCenter);
 
         // Save starting position
         startOffsetX = offsetX;
         startOffsetY = offsetY;
         startScale = scaleFactor;
 
-        // Calculate center point of the card in world coordinates
+        // Calculate center point of the card
         const cardCenterX = card.X + card.width / 2;
         const cardCenterY = card.Y + card.height / 2;
         
-        // Calculate required offset to center the card in viewport
-        // We need to account for the current scale factor
+        // Calculate required offset to center the card
         targetOffsetX = canvas.width/2 - (cardCenterX * scaleFactor);
         targetOffsetY = canvas.height/2 - (cardCenterY * scaleFactor);
 
-        // Set target scale to show the card at a good size
+        // Set target scale
         targetScale = Math.min(
             canvas.width / (card.width * 3),
             canvas.height / (card.height * 3)
         );
 
-        console.log('Animation targets:', {
-            startOffset: { x: offsetX, y: offsetY },
-            targetOffset: { x: targetOffsetX, y: targetOffsetY },
-            cardCenter: { x: cardCenterX, y: cardCenterY },
-            viewport: { width: canvas.width, height: canvas.height },
-            scales: { current: scaleFactor, target: targetScale }
+        console.log('Animation details:', {
+            card: {
+                number: card.Number,
+                name: card.Name,
+                center: { x: cardCenterX, y: cardCenterY },
+                dimensions: { width: card.width, height: card.height }
+            },
+            viewport: {
+                size: { width: canvas.width, height: canvas.height },
+                currentCenter: startCenter
+            },
+            transform: {
+                current: {
+                    scale: scaleFactor,
+                    offset: { x: offsetX, y: offsetY }
+                },
+                target: {
+                    scale: targetScale,
+                    offset: { x: targetOffsetX, y: targetOffsetY }
+                }
+            }
         });
 
         // Start animation
@@ -211,33 +243,38 @@
         if (!animatingCard) return;
 
         // Update animation progress
-        animationProgress += 0.02; // Adjust speed here
+        animationProgress += 0.02;
         
         if (animationProgress >= 1) {
+            // Log final viewport center after animation
+            const endCenter = getViewportCenter();
+            console.log('Final viewport center (world coordinates):', endCenter);
+            
             // Animation complete
             animatingCard = null;
             drawImages();
             return;
         }
 
-        // Easing function for smooth animation
+        // Easing function
         const easing = t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
         const progress = easing(animationProgress);
 
         // Calculate current scale
         const currentScale = startScale + (targetScale - startScale) * progress;
-
-        // Adjust offsets based on scale change
-        const scaleRatio = currentScale / startScale;
         
-        // Interpolate position with scale compensation
+        // Interpolate position
         offsetX = startOffsetX + (targetOffsetX - startOffsetX) * progress;
         offsetY = startOffsetY + (targetOffsetY - startOffsetY) * progress;
         scaleFactor = currentScale;
 
-        // Draw frame with disappearing rectangle effect
+        // Log current viewport center during animation
+        if (animationProgress % 0.1 < 0.02) { // Log every ~10% of the animation
+            const currentCenter = getViewportCenter();
+            console.log(`Animation progress ${Math.round(animationProgress * 100)}%:`, currentCenter);
+        }
+
         drawImages(animatingCard, animationProgress);
-        
         requestAnimationFrame(animate);
     }
 
