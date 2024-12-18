@@ -78,6 +78,56 @@
       background-color: #fff;
       transform: scale(1.05);
     }
+
+    #message-container {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        border: 1px solid #00ff00;
+        color: #00ff00;
+        padding: 15px 30px;
+        border-radius: 8px;
+        font-family: 'Courier New', monospace;
+        z-index: 1000;
+        box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+        animation: fadeIn 0.3s ease-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translate(-50%, 20px); }
+        to { opacity: 1; transform: translate(-50%, 0); }
+    }
+
+    #progress-container {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        z-index: 1000;
+    }
+
+    #progress-circle {
+        width: 100%;
+        height: 100%;
+        position: relative;
+    }
+
+    #progress-circle svg {
+        transform: rotate(-90deg);
+    }
+
+    #progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #00ff00;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+    }
   </style>
 </head>
 <body>
@@ -90,6 +140,32 @@
     <input type="text" id="nameInput" placeholder="Ваше ім'я...">
     <input type="text" id="unlockInput" placeholder="Введіть код...">
     <button id="unlockButton">Розблокувати</button>
+  </div>
+  <div id="message-container" style="display: none">
+    <span id="message-text"></span>
+  </div>
+
+  <div id="progress-container">
+    <div id="progress-circle">
+        <svg viewBox="0 0 36 36">
+            <path d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="#444"
+                stroke-width="2"
+            />
+            <path id="progress-path"
+                d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="#00ff00"
+                stroke-width="2"
+            />
+        </svg>
+        <div id="progress-text">0/0</div>
+    </div>
   </div>
   <script>
     const canvas = document.getElementById('canvas');
@@ -514,23 +590,22 @@
     document.getElementById('unlockButton').addEventListener('click', () => {
         const username = localStorage.getItem('username');
         if (!username) {
-            alert('Please enter your name first');
+            showMessage('Будь ласка, спочатку введіть ваше ім\'я');
             return;
         }
 
         const input = document.getElementById('unlockInput');
         const code = input.value.trim().toUpperCase();
 
-        // Check if code was already used
         const usedCodes = JSON.parse(localStorage.getItem(`usedCodes_${username}`) || '[]');
         if (usedCodes.includes(code)) {
-            alert('This code has already been used');
+            showMessage('Цей код вже був використаний');
             return;
         }
         
         const decodedCode = decodeUnlockCode(code, username);
         if (!decodedCode) {
-            alert('Invalid code');
+            showMessage('Невірний код');
             return;
         }
 
@@ -539,7 +614,7 @@
 
         if (decodedCode.isRandom) {
             if (availableCards.length === 0) {
-                alert('No available cards to unlock');
+                showMessage('Немає доступних карток для відкриття');
                 return;
             }
             const index = decodedCode.randomBits % availableCards.length;
@@ -580,6 +655,11 @@
         
         // Start animation for the unlocked card
         animateToCard(cardToUnlock);
+
+        // Show unlock message and update progress
+        const unlockedCard = cardsData.find(c => c.Number === cardToUnlock);
+        showMessage(`Нова карточка відкрита: ${unlockedCard.Name}`);
+        updateProgress();
     });
 
     // Add name input handling
@@ -609,6 +689,44 @@
     window.addEventListener('resize', () => {
         drawImages();
     });
+
+    // Add message handling function
+    function showMessage(text, duration = 3000) {
+        const container = document.getElementById('message-container');
+        const messageText = document.getElementById('message-text');
+        
+        messageText.textContent = text;
+        container.style.display = 'block';
+        
+        setTimeout(() => {
+            container.style.display = 'none';
+        }, duration);
+    }
+
+    // Update progress circle
+    function updateProgress() {
+        const username = localStorage.getItem('username');
+        if (!username || !cardsData) return;
+
+        const unlockedCards = JSON.parse(localStorage.getItem(`unlockedCards_${username}`)) || [];
+        const totalCards = cardsData.length;
+        const unlockedCount = unlockedCards.length;
+        
+        // Update progress text
+        document.getElementById('progress-text').textContent = 
+            `${unlockedCount}/${totalCards}`;
+        
+        // Update circle
+        const progress = (unlockedCount / totalCards) * 100;
+        const path = document.getElementById('progress-path');
+        const pathLength = path.getTotalLength();
+        
+        path.style.strokeDasharray = pathLength;
+        path.style.strokeDashoffset = pathLength * (1 - progress / 100);
+    }
+
+    // Initialize progress on load
+    window.addEventListener('load', updateProgress);
   </script>
 </body>
 </html>
