@@ -166,8 +166,9 @@
         function hashUsername(username) {
             let hash = 0;
             for (let i = 0; i < username.length; i++) {
-                hash = ((hash << 5) - hash) + username.charCodeAt(i);
-                hash = hash & hash;
+                const char = username.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash; // Convert to 32-bit integer
             }
             return hash;
         }
@@ -177,35 +178,54 @@
             const username = document.getElementById('username').value;
             const cardNumber = parseInt(document.getElementById('cardNumber').value) || 0;
 
-            let numericValue = cardNumber & 0xFF;
-
-            // Add username hash for individual codes
-            if (codeType.startsWith('individual')) {
-                if (!username) {
-                    alert('Username required for individual codes');
-                    return;
-                }
-                const userHash = hashUsername(username) & 0xFFFF;
-                numericValue |= (userHash << 8);
+            // Validate inputs based on code type
+            if (codeType.startsWith('individual') && !username) {
+                alert('Username required for individual codes');
+                return;
+            }
+            if (codeType.includes('specific') && !cardNumber) {
+                alert('Card number required for specific codes');
+                return;
             }
 
-            // Add random bits (8 bits of randomness)
-            const randomBits = Math.floor(Math.random() * 256);
-            numericValue |= (randomBits << 24);
-
-            // Add type flags
-            if (codeType.startsWith('common')) {
-                numericValue |= 0x10000000;
-            }
-            if (codeType.includes('random')) {
-                numericValue |= 0x20000000;
-            }
-
-            // Convert to base36 string
-            const code = numericValue.toString(36).toUpperCase();
+            // Generate code using the new encoding function
+            const isCommon = codeType.startsWith('common');
+            const code = encodeUnlockCode(
+                cardNumber,
+                codeType.startsWith('individual') ? username : null,
+                isCommon
+            );
             
             document.getElementById('result').innerHTML = 
                 `Generated Code: <strong>${code}</strong>`;
+        }
+
+        function encodeUnlockCode(cardNumber, username = null, isCommon = false) {
+            // Increase random bits from 8 to 24 bits
+            const randomBits = Math.floor(Math.random() * 0xFFFFFF);
+            
+            // Calculate timestamp bits (last 16 bits of current timestamp)
+            const timestampBits = Date.now() & 0xFFFF;
+            
+            // Structure (48 bits total):
+            // - Card number: 8 bits (0-255)
+            // - User hash: 16 bits
+            // - Random: 24 bits (increased from 8)
+            // - Flags: 2 bits (isCommon, isRandom)
+            // - Timestamp: 16 bits
+            let value = cardNumber;
+            
+            if (username) {
+                value |= (hashUsername(username) & 0xFFFF) << 8;
+            }
+            
+            value |= randomBits << 24;
+            value |= (isCommon ? 1 : 0) << 46;
+            value |= (username ? 0 : 1) << 47;
+            value |= timestampBits << 48;
+            
+            // Convert to base36 for shorter string
+            return value.toString(36).toUpperCase();
         }
     </script>
 </body>
