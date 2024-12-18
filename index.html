@@ -171,18 +171,28 @@
         const card = cardsData.find(c => c.Number === cardNumber);
         if (!card) return;
 
+        console.log('Animating to card:', card); // Debug log
+
         // Save starting position
         startOffsetX = offsetX;
         startOffsetY = offsetY;
         startScale = scaleFactor;
 
-        // Calculate target position (center card on screen)
+        // Calculate center point of the card in world coordinates
         const cardCenterX = card.X + card.width / 2;
         const cardCenterY = card.Y + card.height / 2;
         
         // Calculate required offset to center the card
-        targetOffsetX = canvas.width / 2 - cardCenterX * scaleFactor;
-        targetOffsetY = canvas.height / 2 - cardCenterY * scaleFactor;
+        // We need to move the card's center point to the center of the viewport
+        targetOffsetX = (canvas.width / 2) - (cardCenterX * scaleFactor);
+        targetOffsetY = (canvas.height / 2) - (cardCenterY * scaleFactor);
+
+        console.log('Animation targets:', { // Debug log
+            startOffset: { x: startOffsetX, y: startOffsetY },
+            targetOffset: { x: targetOffsetX, y: targetOffsetY },
+            cardCenter: { x: cardCenterX, y: cardCenterY },
+            viewport: { width: canvas.width, height: canvas.height }
+        });
 
         // Set target scale to show the card at a good size
         targetScale = Math.min(
