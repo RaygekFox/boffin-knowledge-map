@@ -308,39 +308,40 @@
         context.strokeStyle = '#CC99FF';
         context.fillStyle = '#869CFF';
 
+        // Draw non-animating rectangles first
         cardsData.forEach(card => {
-            if (!unlockedCards.includes(card.Number)) {
-                if (animCard && card.Number === animCard.Number) {
-                    // Animate disappearing rectangle
-                    context.save();
-                    context.translate(
-                        card.X + card.width / 2,
-                        card.Y + card.height / 2
-                    );
-                    
-                    // Scale and fade effect
-                    const scale = 1 + progress * 0.5;
-                    context.scale(scale, scale);
-                    context.globalAlpha = 1 - progress;
-                    
-                    // Wobble effect
-                    const wobble = Math.sin(progress * Math.PI * 8) * (1 - progress) * 10;
-                    context.rotate(wobble * Math.PI / 180);
-                    
-                    // Draw rectangle
-                    roundRect(context, 
-                        -card.width / 2, -card.height / 2,
-                        card.width, card.height,
-                        50
-                    );
-                    
-                    context.restore();
-                } else {
-                    // Draw normal rectangle
-                    roundRect(context, card.X, card.Y, card.width, card.height, 50);
-                }
+            if (!unlockedCards.includes(card.Number) && 
+                (!animCard || card.Number !== animCard.Number)) {
+                roundRect(context, card.X, card.Y, card.width, card.height, 50);
             }
         });
+
+        // Draw animating rectangle last (so it's on top)
+        if (animCard && progress < 1) {
+            context.save();
+            context.translate(
+                animCard.X + animCard.width / 2,
+                animCard.Y + animCard.height / 2
+            );
+            
+            // Scale and fade effect
+            const scale = 1 + progress * 0.5;
+            context.scale(scale, scale);
+            context.globalAlpha = Math.max(0, 1 - progress);
+            
+            // Wobble effect
+            const wobble = Math.sin(progress * Math.PI * 8) * (1 - progress) * 10;
+            context.rotate(wobble * Math.PI / 180);
+            
+            // Draw rectangle
+            roundRect(context, 
+                -animCard.width / 2, -animCard.height / 2,
+                animCard.width, animCard.height,
+                50
+            );
+            
+            context.restore();
+        }
     }
 
     function getEventPoint(e) {
@@ -537,16 +538,13 @@
         let cardToUnlock;
 
         if (decodedCode.isRandom) {
-            // Only use available cards for random codes
             if (availableCards.length === 0) {
                 alert('No available cards to unlock');
                 return;
             }
-            // Use the random bits to determine which card to unlock
             const index = decodedCode.randomBits % availableCards.length;
             cardToUnlock = availableCards[index];
         } else {
-            // For specific cards, just use the card number directly
             cardToUnlock = decodedCode.cardNumber;
         }
 
@@ -556,15 +554,24 @@
 
         const unlockedCards = JSON.parse(localStorage.getItem(`unlockedCards_${username}`));
         
-        // Remove from available and add to unlocked
+        // Add to unlocked cards
         localStorage.setItem(`unlockedCards_${username}`, 
             JSON.stringify([...unlockedCards, cardToUnlock]));
         
-        // Update available cards
+        // Update available cards:
+        // 1. Remove the newly unlocked card
+        // 2. Add its connections that aren't already unlocked
         const card = cardsData.find(c => c.Number === cardToUnlock);
-        const newAvailable = availableCards
-            .filter(num => num !== cardToUnlock)
-            .concat(card.Connections || []);
+        const newConnections = (card.Connections || []).filter(num => 
+            !unlockedCards.includes(num) && // Not already unlocked
+            !availableCards.includes(num) && // Not already available
+            num !== cardToUnlock // Not the card we just unlocked
+        );
+        
+        const newAvailable = [
+            ...availableCards.filter(num => num !== cardToUnlock),
+            ...newConnections
+        ];
         
         localStorage.setItem(`availableCards_${username}`, 
             JSON.stringify([...new Set(newAvailable)]));
