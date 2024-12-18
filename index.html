@@ -593,45 +593,45 @@
 
     function decodeUnlockCode(code, username) {
         try {
-            console.log('Decoding:', { code, username });
+            // Decode: swap adjacent characters back
+            let decoded = '';
+            code = code.toLowerCase();
+            for (let i = 0; i < code.length - 1; i += 2) {
+                decoded += code[i + 1] + code[i];
+            }
+            if (code.length % 2 === 1) {
+                decoded += code[code.length - 1];
+            }
             
-            // Convert from base36 to BigInt directly
-            const value = BigInt(parseInt(code, 36));
-            console.log('Decoded value:', value.toString(16));
+            console.log('Decoding:', { original: code, decoded: decoded });
             
-            // Extract components
-            const cardNumber = Number(value & 0xFFn);
-            const userHash = Number((value >> 8n) & 0xFFFFn);
-            const randomBits = Number((value >> 24n) & 0xFFFFFFn);
-            const isCommon = Boolean((value >> 48n) & 1n);
-            const isRandom = Boolean((value >> 49n) & 1n);
-            const timestampBits = Number((value >> 50n) & 0x3FFFn);
+            // First character indicates type
+            const type = decoded[0];
+            let pos = 1;
             
-            console.log('Decoded components:', {
-                cardNumber,
-                userHash,
-                randomBits,
-                isCommon,
-                isRandom,
-                timestampBits
-            });
+            // Extract card number if specific
+            let cardNumber = null;
+            if (type === '1' || type === '3') {
+                cardNumber = parseInt(decoded.substr(pos, 2), 16);
+                pos += 2;
+            }
             
-            // For individual codes, verify username
-            if (!isCommon && !isRandom) {
-                const calculatedHash = hashUsername(username) & 0xFFFF;
-                console.log('Hash check:', { calculatedHash, storedHash: userHash });
-                if (calculatedHash !== userHash) {
-                    console.log('Hash mismatch');
+            // Check username hash if individual
+            if (type === '3' || type === '4') {
+                const codeHash = parseInt(decoded.substr(pos, 4), 16);
+                const userHash = hashUsername(username);
+                console.log('Hash check:', { codeHash, userHash });
+                if (codeHash !== userHash) {
                     return null;
                 }
+                pos += 4;
             }
             
             return {
                 cardNumber,
-                isCommon,
-                isRandom,
-                randomBits,
-                timestampBits
+                isCommon: type === '1' || type === '2',
+                isRandom: type === '2' || type === '4',
+                timestampBits: parseInt(decoded.substr(pos, 6), 16)
             };
         } catch (e) {
             console.error('Decode error:', e);

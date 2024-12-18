@@ -168,7 +168,7 @@
             for (let i = 0; i < username.length; i++) {
                 const char = username.charCodeAt(i);
                 hash = ((hash << 5) - hash) + char;
-                hash = hash & hash; // Convert to 32-bit integer
+                hash = hash & 0xFFFF; // Keep only 16 bits
             }
             return hash;
         }
@@ -203,33 +203,45 @@
         function encodeUnlockCode(cardNumber, username = null, isCommon = false) {
             console.log('Encoding:', { cardNumber, username, isCommon });
             
-            // Start with the card number
-            let value = BigInt(cardNumber & 0xFF);
-            console.log('After card:', value.toString(16));
+            // First character: type
+            // 1: common-specific
+            // 2: common-random
+            // 3: individual-specific
+            // 4: individual-random
+            let code = isCommon ? 
+                (cardNumber ? '1' : '2') : 
+                (cardNumber ? '3' : '4');
             
-            // Add user hash (8-23 bits)
-            if (username) {
-                const userHash = BigInt(hashUsername(username) & 0xFFFF);
-                value |= userHash << 8n;
-                console.log('After hash:', value.toString(16));
+            // Add card number if specific (as 2 hex digits)
+            if (cardNumber) {
+                code += cardNumber.toString(16).padStart(2, '0');
             }
             
-            // Add random (24-47 bits)
-            const randomBits = BigInt(Math.floor(Math.random() * 0xFFFFFF));
-            value |= randomBits << 24n;
-            console.log('After random:', value.toString(16));
+            // Add username hash if individual
+            if (username) {
+                const hash = hashUsername(username).toString(16);
+                code += hash.padStart(4, '0');
+            }
             
-            // Add flags (48-49 bits)
-            value |= BigInt(isCommon ? 1 : 0) << 48n;
-            value |= BigInt(username ? 0 : 1) << 49n;
-            console.log('After flags:', value.toString(16));
+            // Add timestamp for randomness (last 6 hex digits)
+            const timestamp = Date.now().toString(16).slice(-6);
+            code += timestamp;
             
-            // Add timestamp (50-63 bits)
-            const timestampBits = BigInt(Date.now() & 0x3FFF);
-            value |= timestampBits << 50n;
+            // Simple encoding: swap adjacent characters
+            let encoded = '';
+            for (let i = 0; i < code.length - 1; i += 2) {
+                encoded += code[i + 1] + code[i];
+            }
+            if (code.length % 2 === 1) {
+                encoded += code[code.length - 1];
+            }
             
-            console.log('Final value:', value.toString(16));
-            return value.toString(36).toUpperCase();
+            console.log('Code components:', {
+                original: code,
+                encoded: encoded
+            });
+            
+            return encoded.toUpperCase();
         }
     </script>
 </body>
