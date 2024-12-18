@@ -200,15 +200,16 @@
         const cardCenterX = card.X + card.width / 2;
         const cardCenterY = card.Y + card.height / 2;
         
-        // Calculate required offset to center the card
-        targetOffsetX = canvas.width/2 - (cardCenterX * scaleFactor);
-        targetOffsetY = canvas.height/2 - (cardCenterY * scaleFactor);
-
-        // Set target scale
+        // Set target scale first
         targetScale = Math.min(
             canvas.width / (card.width * 3),
             canvas.height / (card.height * 3)
         );
+
+        // Calculate required offset to center the card
+        // We need to transform the card's center to screen space
+        targetOffsetX = canvas.width/2 - (cardCenterX * targetScale);
+        targetOffsetY = canvas.height/2 - (cardCenterY * targetScale);
 
         console.log('Animation details:', {
             card: {
@@ -219,7 +220,11 @@
             },
             viewport: {
                 size: { width: canvas.width, height: canvas.height },
-                currentCenter: startCenter
+                currentCenter: startCenter,
+                targetCenter: {
+                    x: cardCenterX,
+                    y: cardCenterY
+                }
             },
             transform: {
                 current: {
@@ -246,7 +251,6 @@
         animationProgress += 0.02;
         
         if (animationProgress >= 1) {
-            // Log final viewport center after animation
             const endCenter = getViewportCenter();
             console.log('Final viewport center (world coordinates):', endCenter);
             
@@ -260,16 +264,15 @@
         const easing = t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
         const progress = easing(animationProgress);
 
-        // Calculate current scale
-        const currentScale = startScale + (targetScale - startScale) * progress;
+        // Interpolate scale first
+        scaleFactor = startScale + (targetScale - startScale) * progress;
         
-        // Interpolate position
+        // Then interpolate position
         offsetX = startOffsetX + (targetOffsetX - startOffsetX) * progress;
         offsetY = startOffsetY + (targetOffsetY - startOffsetY) * progress;
-        scaleFactor = currentScale;
 
-        // Log current viewport center during animation
-        if (animationProgress % 0.1 < 0.02) { // Log every ~10% of the animation
+        // Log progress
+        if (animationProgress % 0.1 < 0.02) {
             const currentCenter = getViewportCenter();
             console.log(`Animation progress ${Math.round(animationProgress * 100)}%:`, currentCenter);
         }
