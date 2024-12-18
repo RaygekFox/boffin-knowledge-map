@@ -3,31 +3,164 @@
 <head>
     <title>Code Generator</title>
     <style>
-        body { padding: 20px; font-family: Arial; }
-        .form-group { margin: 10px 0; }
-        input, select { margin: 5px 0; }
+        body { 
+            background-color: #0a0a0a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            padding: 40px;
+            line-height: 1.6;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background-color: #111;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+            max-width: 500px;
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ff00, transparent);
+            animation: scan 2s linear infinite;
+        }
+
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .form-group { 
+            margin: 20px 0;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #00ff00;
+            text-transform: uppercase;
+            font-size: 0.9em;
+            letter-spacing: 1px;
+        }
+
+        input, select { 
+            width: 100%;
+            padding: 10px;
+            background-color: #1a1a1a;
+            border: 1px solid #00ff00;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            box-sizing: border-box;
+            border-radius: 5px;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #00ff00;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #00cc00;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #1a1a1a;
+            border-radius: 5px;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        strong {
+            color: #fff;
+            letter-spacing: 2px;
+        }
+
+        /* Add some matrix-like background elements */
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            opacity: 0.1;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .matrix-bg::before {
+            content: '01';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            right: -50%;
+            bottom: -50%;
+            transform: rotate(45deg);
+            font-size: 20px;
+            letter-spacing: 20px;
+            color: #00ff00;
+            white-space: nowrap;
+            line-height: 20px;
+        }
     </style>
 </head>
 <body>
-    <div class="form-group">
-        <label>Code Type:</label><br>
-        <select id="codeType">
-            <option value="common-specific">Common Specific</option>
-            <option value="common-random">Common Random</option>
-            <option value="individual-specific">Individual Specific</option>
-            <option value="individual-random">Individual Random</option>
-        </select>
+    <div class="matrix-bg"></div>
+    <div class="container">
+        <div class="form-group">
+            <label>Code Type:</label>
+            <select id="codeType">
+                <option value="common-specific">Common Specific</option>
+                <option value="common-random">Common Random</option>
+                <option value="individual-specific">Individual Specific</option>
+                <option value="individual-random">Individual Random</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Username (for individual codes):</label>
+            <input type="text" id="username">
+        </div>
+        <div class="form-group">
+            <label>Card Number (for specific codes):</label>
+            <input type="number" id="cardNumber" min="1" max="255">
+        </div>
+        <button onclick="generateCode()">Generate Code</button>
+        <div id="result"></div>
     </div>
-    <div class="form-group">
-        <label>Username (for individual codes):</label><br>
-        <input type="text" id="username">
-    </div>
-    <div class="form-group">
-        <label>Card Number (for specific codes):</label><br>
-        <input type="number" id="cardNumber" min="1" max="255">
-    </div>
-    <button onclick="generateCode()">Generate Code</button>
-    <div id="result" style="margin-top: 20px;"></div>
 
     <script>
         function hashUsername(username) {

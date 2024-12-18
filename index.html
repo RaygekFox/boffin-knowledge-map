@@ -383,15 +383,17 @@
         let cardToUnlock;
 
         if (decodedCode.isRandom) {
+            // Only use available cards for random codes
+            if (availableCards.length === 0) {
+                alert('No available cards to unlock');
+                return;
+            }
             // Use the random bits to determine which card to unlock
             const index = decodedCode.randomBits % availableCards.length;
             cardToUnlock = availableCards[index];
         } else {
+            // For specific cards, just use the card number directly
             cardToUnlock = decodedCode.cardNumber;
-            if (!availableCards.includes(cardToUnlock)) {
-                alert('This card is not available yet');
-                return;
-            }
         }
 
         // Store the used code
