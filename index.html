@@ -217,18 +217,20 @@
     let cardsData;
     let initialLoadComplete = false;
 
-    fetch('cards.json')
-        .then(response => response.json())
-        .then(data => {
-            cardsData = data;
-            // On first load, only show card 1
-            if (!localStorage.getItem('username')) {
-                localStorage.setItem('unlockedCards_temp', JSON.stringify([1]));
-            }
-            initialLoadComplete = true;
-            centerOnFirstCard();
-            drawImages();
-        });
+    Promise.all([
+        fetch('cards.json').then(response => response.json()),
+        new Promise(resolve => {
+            if (boardImg.complete) resolve();
+            else boardImg.onload = resolve;
+        })
+    ]).then(([data]) => {
+        cardsData = data;
+        if (!localStorage.getItem('username')) {
+            localStorage.setItem('unlockedCards_temp', JSON.stringify([1]));
+        }
+        initialLoadComplete = true;
+        centerOnFirstCard();
+    });
 
     // Initialize storage for new users
     function initializeStorage() {
@@ -952,29 +954,34 @@
             return;
         }
         
-        console.log('First card data:', firstCard);
+        // Calculate initial scale to fit the card nicely
+        scaleFactor = Math.min(
+            canvas.width / (firstCard.width * 1.5),  // Reduced multiplier for better fit
+            canvas.height / (firstCard.height * 1.5)
+        );
         
-        // Calculate card center
+        // Calculate card center in world coordinates
         const cardCenterX = firstCard.X + firstCard.width / 2;
         const cardCenterY = firstCard.Y + firstCard.height / 2;
         
-        console.log('Card center:', { cardCenterX, cardCenterY });
-        console.log('Canvas dimensions:', { width: canvas.width, height: canvas.height });
-        
-        // Calculate initial scale to fit the card nicely
-        scaleFactor = Math.min(
-            canvas.width / (firstCard.width * 2),  // Reduced multiplier from 3 to 2
-            canvas.height / (firstCard.height * 2)
-        );
-        
         // Calculate offsets to center the card
-        offsetX = (canvas.width/2) - (cardCenterX * scaleFactor);
-        offsetY = (canvas.height/2) - (cardCenterY * scaleFactor);
+        offsetX = (canvas.width / 2) - (cardCenterX * scaleFactor);
+        offsetY = (canvas.height / 2) - (cardCenterY * scaleFactor);
         
-        console.log('New view parameters:', { 
-            scaleFactor, 
-            offsetX, 
-            offsetY 
+        // Ensure the card is visible
+        const minScale = Math.max(
+            canvas.width / boardImg.naturalWidth,
+            canvas.height / boardImg.naturalHeight
+        ) * 0.8; // 80% of the minimum scale needed to fit the board
+        
+        if (scaleFactor < minScale) {
+            scaleFactor = minScale;
+        }
+        
+        console.log('Centering parameters:', {
+            cardCenter: { x: cardCenterX, y: cardCenterY },
+            canvas: { width: canvas.width, height: canvas.height },
+            view: { scale: scaleFactor, offsetX, offsetY }
         });
         
         drawImages();
