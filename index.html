@@ -226,6 +226,7 @@
                 localStorage.setItem('unlockedCards_temp', JSON.stringify([1]));
             }
             initialLoadComplete = true;
+            centerOnFirstCard();
             drawImages();
         });
 
@@ -937,6 +938,35 @@
             e.preventDefault();
         }
     }, { passive: false });
+
+    // Add this function
+    function centerOnFirstCard() {
+        if (!cardsData) return;
+        
+        const firstCard = cardsData.find(c => c.Number === 1);
+        if (!firstCard) return;
+        
+        // Calculate card center
+        const cardCenterX = firstCard.X + firstCard.width / 2;
+        const cardCenterY = firstCard.Y + firstCard.height / 2;
+        
+        // Calculate initial scale to fit the card
+        scaleFactor = Math.min(
+            canvas.width / (firstCard.width * 3),
+            canvas.height / (firstCard.height * 3)
+        );
+        
+        // Calculate offsets to center the card
+        offsetX = canvas.width/2 - (cardCenterX * scaleFactor);
+        offsetY = canvas.height/2 - (cardCenterY * scaleFactor);
+        
+        drawImages();
+    }
+
+    // Also center when window is resized
+    window.addEventListener('resize', () => {
+        centerOnFirstCard();
+    });
   </script>
 </body>
 </html>
