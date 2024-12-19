@@ -237,7 +237,7 @@
         }
 
         if (!localStorage.getItem(`unlockedCards_${username}`)) {
-            // Start with card Number 1
+            // Start with card 1
             localStorage.setItem(`unlockedCards_${username}`, JSON.stringify([1]));
         }
         
@@ -643,7 +643,7 @@
                 cardNumber,
                 isCommon: type === '1' || type === '2',
                 isRandom: type === '2' || type === '4',
-                timestampBits: parseInt(decoded.substr(pos, 6), 16)
+                randomBits: parseInt(decoded.substr(pos, 6), 16) || 0 // Add default value
             };
         } catch (e) {
             console.error('Decode error:', e);
