@@ -941,24 +941,41 @@
 
     // Add this function
     function centerOnFirstCard() {
-        if (!cardsData) return;
+        if (!cardsData) {
+            console.log('No cards data available');
+            return;
+        }
         
         const firstCard = cardsData.find(c => c.Number === 1);
-        if (!firstCard) return;
+        if (!firstCard) {
+            console.log('First card not found');
+            return;
+        }
+        
+        console.log('First card data:', firstCard);
         
         // Calculate card center
         const cardCenterX = firstCard.X + firstCard.width / 2;
         const cardCenterY = firstCard.Y + firstCard.height / 2;
         
-        // Calculate initial scale to fit the card
+        console.log('Card center:', { cardCenterX, cardCenterY });
+        console.log('Canvas dimensions:', { width: canvas.width, height: canvas.height });
+        
+        // Calculate initial scale to fit the card nicely
         scaleFactor = Math.min(
-            canvas.width / (firstCard.width * 3),
-            canvas.height / (firstCard.height * 3)
+            canvas.width / (firstCard.width * 2),  // Reduced multiplier from 3 to 2
+            canvas.height / (firstCard.height * 2)
         );
         
         // Calculate offsets to center the card
-        offsetX = canvas.width/2 - (cardCenterX * scaleFactor);
-        offsetY = canvas.height/2 - (cardCenterY * scaleFactor);
+        offsetX = (canvas.width/2) - (cardCenterX * scaleFactor);
+        offsetY = (canvas.height/2) - (cardCenterY * scaleFactor);
+        
+        console.log('New view parameters:', { 
+            scaleFactor, 
+            offsetX, 
+            offsetY 
+        });
         
         drawImages();
     }
