@@ -684,7 +684,11 @@
             return;
         }
 
-        const availableCards = JSON.parse(localStorage.getItem(`availableCards_${username}`));
+        console.log('Decoded code:', decodedCode);
+
+        const availableCards = JSON.parse(localStorage.getItem(`availableCards_${username}`) || '[]');
+        console.log('Available cards:', availableCards);
+        
         let cardToUnlock;
 
         if (decodedCode.isRandom) {
@@ -694,12 +698,21 @@
             }
             const index = decodedCode.randomBits % availableCards.length;
             cardToUnlock = availableCards[index];
+            console.log('Random card selection:', {
+                randomBits: decodedCode.randomBits,
+                availableLength: availableCards.length,
+                index: index,
+                selectedCard: cardToUnlock
+            });
         } else {
             cardToUnlock = decodedCode.cardNumber;
+            console.log('Specific card:', cardToUnlock);
         }
 
         // Find the card data
         const card = cardsData.find(c => c.Number === cardToUnlock);
+        console.log('Found card:', card);
+        
         if (!card) {
             showMessage('Помилка: карточку не знайдено');
             return;
