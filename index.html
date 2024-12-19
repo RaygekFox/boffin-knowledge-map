@@ -688,7 +688,7 @@
         let cardToUnlock;
 
         if (decodedCode.isRandom) {
-            if (availableCards.length === 0) {
+            if (!availableCards || availableCards.length === 0) {
                 showMessage('Немає доступних карток для відкриття');
                 return;
             }
@@ -696,6 +696,13 @@
             cardToUnlock = availableCards[index];
         } else {
             cardToUnlock = decodedCode.cardNumber;
+        }
+
+        // Find the card data
+        const card = cardsData.find(c => c.Number === cardToUnlock);
+        if (!card) {
+            showMessage('Помилка: карточку не знайдено');
+            return;
         }
 
         // Store the used code
@@ -711,7 +718,6 @@
         // Update available cards:
         // 1. Remove the newly unlocked card
         // 2. Add its connections that aren't already unlocked
-        const card = cardsData.find(c => c.Number === cardToUnlock);
         const newConnections = (card.Connections || []).filter(num => 
             !unlockedCards.includes(num) && // Not already unlocked
             !availableCards.includes(num) && // Not already available
@@ -732,8 +738,7 @@
         animateToCard(cardToUnlock);
 
         // Show unlock message and update progress
-        const unlockedCard = cardsData.find(c => c.Number === cardToUnlock);
-        showMessage(`Нова карточка відкрита: ${unlockedCard.Name}`);
+        showMessage(`Нова карточка відкрита: ${card.Name}`);
         updateProgress();
     });
 
