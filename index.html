@@ -215,11 +215,17 @@
 
     // Load cards data
     let cardsData;
+    let initialLoadComplete = false;
+
     fetch('cards.json')
         .then(response => response.json())
         .then(data => {
             cardsData = data;
-            initializeStorage();
+            // On first load, only show card 1
+            if (!localStorage.getItem('username')) {
+                localStorage.setItem('unlockedCards_temp', JSON.stringify([1]));
+            }
+            initialLoadComplete = true;
             drawImages();
         });
 
@@ -390,19 +396,21 @@
             context.drawImage(boardImg, 0, 0);
         }
 
-        const username = localStorage.getItem('username');
-        if (!username || !cardsData) return;
+        if (!initialLoadComplete) return;
 
-        const unlockedCards = JSON.parse(localStorage.getItem(`unlockedCards_${username}`)) || [];
-        
+        // Get unlocked cards - use temporary storage if no username
+        const username = localStorage.getItem('username');
+        const unlockedCards = username ? 
+            JSON.parse(localStorage.getItem(`unlockedCards_${username}`)) || [1] :
+            JSON.parse(localStorage.getItem('unlockedCards_temp')) || [1];
+
+        // Draw rectangles for locked cards
         context.lineWidth = 10;
         context.strokeStyle = '#CC99FF';
         context.fillStyle = '#869CFF';
 
-        // Draw non-animating rectangles first
         cardsData.forEach(card => {
-            if (!unlockedCards.includes(card.Number) && 
-                (!animCard || card.Number !== animCard.Number)) {
+            if (!unlockedCards.includes(card.Number)) {
                 roundRect(context, card.X, card.Y, card.width, card.height, 50);
             }
         });
@@ -790,6 +798,64 @@
 
     // Initialize progress on load
     window.addEventListener('load', updateProgress);
+
+    // Add meta viewport tag for mobile responsiveness
+    document.head.innerHTML = `
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        ${document.head.innerHTML}
+    `;
+
+    // Add mobile-specific styles
+    const mobileStyles = `
+        @media (max-width: 768px) {
+            .unlock-controls {
+                flex-direction: column;
+                top: 10px;
+                left: 10px;
+                right: 10px;
+                gap: 5px;
+            }
+
+            .unlock-controls input,
+            .unlock-controls button {
+                width: 100%;
+                max-width: none;
+                font-size: 14px;
+                padding: 10px;
+            }
+
+            #message-container {
+                left: 10px;
+                right: 10px;
+                transform: none;
+                font-size: 14px;
+                text-align: center;
+            }
+
+            #progress-container {
+                width: 50px;
+                height: 50px;
+            }
+        }
+    `;
+
+    // Add mobile styles to document
+    const styleElement = document.createElement('style');
+    styleElement.textContent = mobileStyles;
+    document.head.appendChild(styleElement);
+
+    // Prevent default touch behaviors
+    canvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 1) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 1) {
+            e.preventDefault();
+        }
+    }, { passive: false });
   </script>
 </body>
 </html>
