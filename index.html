@@ -482,52 +482,56 @@
         drawImages();
     });
 
-    // Touch events for pinch zoom
+    // Add these event listeners for better touch handling
     canvas.addEventListener('touchstart', (e) => {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        // Get initial distance between touch points
-        initialPinchDistance = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        initialScale = scaleFactor;
-      }
-    });
+        e.preventDefault(); // Prevent scrolling
+        if (e.touches.length === 2) {
+            // Initialize pinch zoom
+            initialPinchDistance = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            initialScale = scaleFactor;
+        } else if (e.touches.length === 1) {
+            // Initialize drag
+            isDragging = true;
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            startX = touch.clientX - rect.left;
+            startY = touch.clientY - rect.top;
+        }
+    }, { passive: false });
 
     canvas.addEventListener('touchmove', (e) => {
-      if (e.touches.length === 2) {
-        e.preventDefault();
-        
-        // Calculate new distance
-        const currentDistance = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-
-        if (initialPinchDistance === null) {
-          initialPinchDistance = currentDistance;
+        e.preventDefault(); // Prevent scrolling
+        if (e.touches.length === 2) {
+            // Handle pinch zoom
+            const currentDistance = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX,
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            
+            if (initialPinchDistance) {
+                const scale = currentDistance / initialPinchDistance;
+                scaleFactor = initialScale * scale;
+                drawImages();
+            }
+        } else if (e.touches.length === 1 && isDragging) {
+            // Handle drag
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            
+            offsetX += (x - startX);
+            offsetY += (y - startY);
+            
+            startX = x;
+            startY = y;
+            
+            drawImages();
         }
-
-        // Calculate center point of the pinch
-        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-
-        // Calculate zoom factor
-        const scale = currentDistance / initialPinchDistance;
-        
-        // Apply zoom relative to initial scale
-        scaleFactor = initialScale * scale;
-        
-        drawImages();
-      } else if (e.touches.length === 1 && isDragging) {
-        // Handle single touch drag
-        const touch = e.touches[0];
-        offsetX = touch.clientX - startX;
-        offsetY = touch.clientY - startY;
-        drawImages();
-      }
-    });
+    }, { passive: false });
 
     canvas.addEventListener('touchend', () => {
       initialPinchDistance = null;
@@ -805,36 +809,63 @@
         ${document.head.innerHTML}
     `;
 
-    // Add mobile-specific styles
+    // Update mobile styles
     const mobileStyles = `
         @media (max-width: 768px) {
             .unlock-controls {
-                flex-direction: column;
+                position: fixed;
                 top: 10px;
                 left: 10px;
                 right: 10px;
-                gap: 5px;
+                flex-direction: column;
+                gap: 8px;
+                z-index: 1000;
+                width: calc(100% - 20px);
+                box-sizing: border-box;
             }
 
             .unlock-controls input,
             .unlock-controls button {
                 width: 100%;
-                max-width: none;
-                font-size: 14px;
-                padding: 10px;
+                box-sizing: border-box;
+                font-size: 16px;
+                padding: 12px;
+                margin: 0;
+                border-radius: 8px;
             }
 
             #message-container {
+                position: fixed;
+                bottom: 20px;
                 left: 10px;
                 right: 10px;
+                width: calc(100% - 20px);
                 transform: none;
                 font-size: 14px;
                 text-align: center;
+                box-sizing: border-box;
+                z-index: 1000;
             }
 
             #progress-container {
-                width: 50px;
-                height: 50px;
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                width: 40px;
+                height: 40px;
+                z-index: 1000;
+                margin: 0;
+            }
+
+            canvas {
+                touch-action: none; /* Prevent all browser handling of touch events */
+            }
+
+            body {
+                overflow: hidden; /* Prevent body scrolling */
+                position: fixed;
+                width: 100%;
+                height: 100%;
             }
         }
     `;
