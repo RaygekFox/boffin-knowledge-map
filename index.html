@@ -487,13 +487,28 @@
         e.preventDefault(); // Prevent scrolling
         if (e.touches.length === 2) {
             // Initialize pinch zoom
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+            
+            // Calculate center point of the two touches
+            const centerX = (touch1.clientX + touch2.clientX) / 2;
+            const centerY = (touch1.clientY + touch2.clientY) / 2;
+            
+            // Convert to canvas coordinates before zoom
+            const rect = canvas.getBoundingClientRect();
+            const pointXBeforeZoom = (centerX - rect.left - offsetX) / scaleFactor;
+            const pointYBeforeZoom = (centerY - rect.top - offsetY) / scaleFactor;
+            
             initialPinchDistance = Math.hypot(
-                e.touches[0].clientX - e.touches[1].clientX,
-                e.touches[0].clientY - e.touches[1].clientY
+                touch1.clientX - touch2.clientX,
+                touch1.clientY - touch2.clientY
             );
             initialScale = scaleFactor;
+            
+            // Store the center point for use during zoom
+            lastZoomCenter = { x: pointXBeforeZoom, y: pointYBeforeZoom };
+            
         } else if (e.touches.length === 1) {
-            // Initialize drag
             isDragging = true;
             const touch = e.touches[0];
             const rect = canvas.getBoundingClientRect();
@@ -504,20 +519,37 @@
 
     canvas.addEventListener('touchmove', (e) => {
         e.preventDefault(); // Prevent scrolling
-        if (e.touches.length === 2) {
-            // Handle pinch zoom
+        if (e.touches.length === 2 && initialPinchDistance !== null) {
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+            
+            // Calculate new distance
             const currentDistance = Math.hypot(
-                e.touches[0].clientX - e.touches[1].clientX,
-                e.touches[0].clientY - e.touches[1].clientY
+                touch1.clientX - touch2.clientX,
+                touch1.clientY - touch2.clientY
             );
             
-            if (initialPinchDistance) {
-                const scale = currentDistance / initialPinchDistance;
-                scaleFactor = initialScale * scale;
-                drawImages();
-            }
+            // Calculate zoom factor
+            const scale = currentDistance / initialPinchDistance;
+            const newScale = initialScale * scale;
+            
+            // Calculate center point of the two touches
+            const centerX = (touch1.clientX + touch2.clientX) / 2;
+            const centerY = (touch1.clientY + touch2.clientY) / 2;
+            const rect = canvas.getBoundingClientRect();
+            
+            // Convert touch center to canvas coordinates after zoom
+            const pointXAfterZoom = lastZoomCenter.x * newScale;
+            const pointYAfterZoom = lastZoomCenter.y * newScale;
+            
+            // Update scale and offset to keep the zoom center point in place
+            scaleFactor = newScale;
+            offsetX = centerX - rect.left - pointXAfterZoom;
+            offsetY = centerY - rect.top - pointYAfterZoom;
+            
+            drawImages();
+            
         } else if (e.touches.length === 1 && isDragging) {
-            // Handle drag
             const touch = e.touches[0];
             const rect = canvas.getBoundingClientRect();
             const x = touch.clientX - rect.left;
