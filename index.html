@@ -220,7 +220,7 @@
     Promise.all([
         fetch('cards.json').then(response => response.json()),
         new Promise(resolve => {
-            if (boardImg.complete) resolve();
+            if (boardImg.complete && boardImg.naturalWidth) resolve();
             else boardImg.onload = resolve;
         })
     ]).then(([data]) => {
@@ -943,45 +943,24 @@
 
     // Add this function
     function centerOnFirstCard() {
-        if (!cardsData) {
-            console.log('No cards data available');
-            return;
-        }
+        // Hardcoded center point and card dimensions
+        const targetPoint = {
+            x: 528,
+            y: 4141
+        };
         
-        const firstCard = cardsData.find(c => c.Number === 1);
-        if (!firstCard) {
-            console.log('First card not found');
-            return;
-        }
+        // Calculate a scale that makes the card take up about 1/3 of the viewport height
+        scaleFactor = canvas.height / (1200 * 3); // 1200 is card height
         
-        // Calculate initial scale to fit the card nicely
-        scaleFactor = Math.min(
-            canvas.width / (firstCard.width * 1.5),  // Reduced multiplier for better fit
-            canvas.height / (firstCard.height * 1.5)
-        );
+        // Calculate offsets to center on our target point
+        offsetX = (canvas.width / 2) - (targetPoint.x * scaleFactor);
+        offsetY = (canvas.height / 2) - (targetPoint.y * scaleFactor);
         
-        // Calculate card center in world coordinates
-        const cardCenterX = firstCard.X + firstCard.width / 2;
-        const cardCenterY = firstCard.Y + firstCard.height / 2;
-        
-        // Calculate offsets to center the card
-        offsetX = (canvas.width / 2) - (cardCenterX * scaleFactor);
-        offsetY = (canvas.height / 2) - (cardCenterY * scaleFactor);
-        
-        // Ensure the card is visible
-        const minScale = Math.max(
-            canvas.width / boardImg.naturalWidth,
-            canvas.height / boardImg.naturalHeight
-        ) * 0.8; // 80% of the minimum scale needed to fit the board
-        
-        if (scaleFactor < minScale) {
-            scaleFactor = minScale;
-        }
-        
-        console.log('Centering parameters:', {
-            cardCenter: { x: cardCenterX, y: cardCenterY },
-            canvas: { width: canvas.width, height: canvas.height },
-            view: { scale: scaleFactor, offsetX, offsetY }
+        console.log('View parameters:', {
+            scaleFactor,
+            offsetX,
+            offsetY,
+            viewport: { width: canvas.width, height: canvas.height }
         });
         
         drawImages();
@@ -989,7 +968,9 @@
 
     // Also center when window is resized
     window.addEventListener('resize', () => {
-        centerOnFirstCard();
+        if (initialLoadComplete) {
+            centerOnFirstCard();
+        }
     });
   </script>
 </body>
